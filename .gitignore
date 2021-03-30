@@ -1,0 +1,12 @@
+# Maven files
+target/
+
+# IDE files
+.settings/
+.project
+.classpath
+.factorypath
+.vscode/
+*.iml
+*nbactions.xml
+.idea
