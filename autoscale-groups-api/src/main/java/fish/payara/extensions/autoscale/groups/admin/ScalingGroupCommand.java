@@ -37,23 +37,38 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups;
 
-import javax.validation.Constraint;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package fish.payara.extensions.autoscale.groups.admin;
+
+import com.sun.enterprise.util.StringUtils;
+import fish.payara.extensions.autoscale.groups.ScalingGroups;
+import org.glassfish.api.Param;
+import org.glassfish.api.admin.AdminCommand;
+import org.glassfish.api.admin.CommandValidationException;
+import org.glassfish.hk2.api.ServiceLocator;
+
+import javax.inject.Inject;
 
 /**
- * Validator annotation for checking that a {@link ScalingGroup} ConfigBean has a 1:1 relationship with a
- * {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup}.
+ * Parent class intended to be extended from for any Scaling Groups commands, containing common validation and
+ * parameters.
+ *
+ * @author Andrew Pielage
  */
-@Target({ElementType.METHOD, ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy= NotDuplicateDeploymentGroupTargetValidator.class)
-public @interface NotDuplicateDeploymentGroupTarget {
+public abstract class ScalingGroupCommand implements AdminCommand {
 
-    String message() default "Scaling Group to Deployment Group is a 1:1 relationship, " +
-            "and this Deployment Group is already referenced by another AutoScale Group.";
+    @Param(name = "name", primary = true)
+    protected String name;
+
+    @Inject
+    protected ServiceLocator serviceLocator;
+
+    @Inject
+    protected ScalingGroups scalingGroups;
+
+    protected void validateParams() throws CommandValidationException {
+        if (!StringUtils.ok(name)) {
+            throw new CommandValidationException("Name " + name + " is not valid");
+        }
+    }
 }

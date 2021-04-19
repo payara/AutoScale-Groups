@@ -40,18 +40,22 @@
 package fish.payara.extensions.autoscale.groups;
 
 import com.sun.enterprise.config.serverbeans.Config;
-import com.sun.enterprise.config.serverbeans.RefContainer;
+import com.sun.enterprise.config.serverbeans.Server;
+import com.sun.enterprise.config.serverbeans.customvalidators.ConfigRefConstraint;
+import com.sun.enterprise.config.serverbeans.customvalidators.ConfigRefValidator;
 import com.sun.enterprise.config.serverbeans.customvalidators.NotDuplicateTargetName;
 import com.sun.enterprise.config.serverbeans.customvalidators.NotTargetKeyword;
 import com.sun.enterprise.config.serverbeans.customvalidators.ReferenceConstraint;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
 import org.glassfish.api.admin.config.Named;
 import org.jvnet.hk2.config.Attribute;
+import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 
 import javax.validation.Payload;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
+import java.beans.PropertyVetoException;
 
 import static org.glassfish.config.support.Constants.NAME_SERVER_REGEX;
 
@@ -61,14 +65,14 @@ import static org.glassfish.config.support.Constants.NAME_SERVER_REGEX;
  * @author Andrew Pielage
  */
 @Configured
-@NotDuplicateTargetName(message="{sg.duplicate.name}", payload = ScalingGroup.class)
-@ReferenceConstraint(skipDuringCreation = true, payload = ScalingGroup.class)
-public interface ScalingGroup extends Named, Payload {
+public interface ScalingGroup extends ConfigBeanProxy, Payload {
 
-    @NotTargetKeyword(message="{sg.reserved.name}", payload = ScalingGroup.class)
+    @Attribute(required = true)
+    @NotNull
     @Pattern(regexp = NAME_SERVER_REGEX, message = "{sg.invalid.name}", payload = ScalingGroup.class)
-    @Override
-    public String getName();
+    String getName();
+    void setName(String name) throws PropertyVetoException;
+
 
     /**
      * Points to a named {@link Config}. All server instances in the scaling group will share this config.
@@ -77,22 +81,17 @@ public interface ScalingGroup extends Named, Payload {
      */
     @Attribute(defaultValue = "default-config")
     @NotNull
-    @Pattern(regexp = NAME_SERVER_REGEX)
-    @NotTargetKeyword(message = "{config.reserved.name}", payload = Config.class)
-    @ReferenceConstraint.RemoteKey(message = "{resourceref.invalid.configref}", type = Config.class)
     String getConfigRef();
-    void setConfigRef();
+    void setConfigRef(String configRef) throws PropertyVetoException;
 
     /**
+     * Points to a named {@link DeploymentGroup}. Instances will be added to and removed from this Deployment Group
+     * when scaling.
      *
-     * @return
+     * @return The name of the {@link DeploymentGroup}.
      */
-    @Attribute
+    @Attribute(required = true)
     @NotNull
-    @Pattern(regexp=NAME_SERVER_REGEX)
-    @NotTargetKeyword(message="{dg.reserved.name}", payload = DeploymentGroup.class)
-    @ReferenceConstraint.RemoteKey(message="{resourceref.invalid.dgref}", type = DeploymentGroup.class)
-    @NotDuplicateDeploymentGroupTarget
     String getDeploymentGroupRef();
-    void setDeploymentGroupRef();
+    void setDeploymentGroupRef(String deploymentGroupRef) throws PropertyVetoException;
 }

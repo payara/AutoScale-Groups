@@ -37,67 +37,65 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups;
 
-import com.sun.enterprise.config.serverbeans.DomainExtension;
-import fish.payara.internal.notification.PayaraNotifierConfiguration;
-import fish.payara.internal.notification.admin.NotificationServiceConfiguration;
-import org.jvnet.hk2.config.Configured;
-import org.jvnet.hk2.config.DuckTyped;
-import org.jvnet.hk2.config.Element;
+package fish.payara.extensions.autoscale.groups.admin;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.sun.enterprise.config.serverbeans.Configs;
+import com.sun.enterprise.util.StringUtils;
+import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
+import fish.payara.extensions.autoscale.groups.ScalingGroup;
+import org.glassfish.api.Param;
+import org.glassfish.api.admin.CommandValidationException;
+
+import javax.inject.Inject;
 
 /**
- * "Group" ConfigBean interface which slots into Payara config at the domain level, holding references to each
- * individual {@link ScalingGroup}.
+ * Parent class intended to be extended from for any Scaling Groups "set" commands, containing common validation and
+ * parameters.
  *
  * @author Andrew Pielage
  */
-@Configured
-public interface ScalingGroups extends DomainExtension {
+public abstract class SetScalingGroupConfigurationCommand extends ScalingGroupCommand {
 
-    /**
-     * The list of all registered {@link ScalingGroup} ConfigBeans.
-     *
-     * @return The list of all registered {@link ScalingGroup} ConfigBeans.
-     */
-    @Element("scaling-group")
-    List<ScalingGroup> getScalingGroups();
+    @Param(name = "deploymentGroup", alias = "deploymentgroup", optional = true)
+    protected String deploymentGroupRef;
 
-    /**
-     * Return the {@link ScalingGroup} with the specified name
-     * @param name The name of the {@link ScalingGroup} to return
-     * @return The {@link ScalingGroup} with the matching name, or null if no match found
-     */
-    @DuckTyped
-    ScalingGroup getScalingGroup(String name);
+    @Param(name = "config", optional = true)
+    protected String configRef;
 
-    @DuckTyped
-    <T extends ScalingGroup> List<T> getScalingGroupsOfType(Class<T> type);
+    @Inject
+    protected DeploymentGroups deploymentGroups;
 
-    class Duck {
-        public static ScalingGroup getScalingGroup(ScalingGroups scalingGroups, String name) {
-            for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-                if (scalingGroup.getName().equals(name)) {
-                    return scalingGroup;
-                }
-            }
+    @Inject
+    protected Configs configs;
 
-            return null;
+    @Override
+    protected void validateParams() throws CommandValidationException {
+        super.validateParams();
+
+        if (scalingGroups.getScalingGroup(name) == null) {
+            throw new CommandValidationException("Scaling group with name " + name + " does not exist");
         }
 
-        public static <T extends ScalingGroup> List<T> getScalingGroupsOfType(ScalingGroups scalingGroups, Class<T> type) {
-            List<T> scalingGroupsOfTypeT = new ArrayList<>();
+        if (StringUtils.ok(deploymentGroupRef)) {
+            if (deploymentGroups.getDeploymentGroup(deploymentGroupRef) == null) {
+                throw new CommandValidationException("Deployment Group " + deploymentGroupRef + "does not exist");
+            }
+
+            // Search through the scaling groups, checking for any duplicates of the deployment group ref
             for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-                try {
-                    scalingGroupsOfTypeT.add(type.cast(scalingGroup));
-                } catch (Exception e) {
-                    // Wrong type - Do nothing
+                if (scalingGroup.getDeploymentGroupRef().equals(name)) {
+                    throw new CommandValidationException("Deployment Group " + deploymentGroupRef + " is already in use " +
+                            "by " + scalingGroup.getName());
                 }
             }
-            return scalingGroupsOfTypeT;
+        }
+
+        if (StringUtils.ok(configRef)) {
+            if (configs.getConfigByName(configRef) == null) {
+                throw new CommandValidationException("Config name " + configRef + " is not valid or doesn't exist");
+            }
         }
     }
+
 }

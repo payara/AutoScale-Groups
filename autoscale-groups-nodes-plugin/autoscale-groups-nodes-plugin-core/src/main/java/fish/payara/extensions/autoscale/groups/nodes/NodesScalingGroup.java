@@ -37,36 +37,22 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups;
 
-import org.jvnet.hk2.annotations.Contract;
+package fish.payara.extensions.autoscale.groups.nodes;
+
+import fish.payara.extensions.autoscale.groups.ScalingGroup;
+import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.Element;
+
+import java.util.List;
 
 /**
- * Contract interface for AutoScale Group service implementations.
  *
  * @author Andrew Pielage
  */
-@Contract
-public interface Scaler {
+@Configured
+public interface NodesScalingGroup extends ScalingGroup {
 
-    /**
-     * Scale up the number of instances in the given Deployment Group by the specified amount.
-     *
-     * @param numberOfNewInstances The number of instances to scale the Deployment Group up in size by.
-     * @param scalingGroup The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
-     *                     the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
-     *                     scale, which {@link com.sun.enterprise.config.serverbeans.Config Instance Config} to use, as
-     *                     well as any additional implementation specific information.
-     */
-    void scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup);
-
-    /**
-     * Scale down the number of instances in the given Deployment Group by the specified amount.
-     *
-     * @param numberOfInstancesToRemove The number of instances to scale the Deployment Group down in size by.
-     * @param scalingGroup The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
-     *                     the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
-     *                     scale, as well as any additional implementation specific information.
-     */
-    void scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup);
+    @Element("node-ref")
+    List<String> getNodeRefs();
 }
