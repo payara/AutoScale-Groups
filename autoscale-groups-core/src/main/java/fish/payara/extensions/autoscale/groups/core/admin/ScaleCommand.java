@@ -38,33 +38,61 @@
  * holder.
  */
 
-package fish.payara.extensions.autoscale.groups.admin;
+package fish.payara.extensions.autoscale.groups.core.admin;
 
 import com.sun.enterprise.util.StringUtils;
+import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
 import fish.payara.extensions.autoscale.groups.ScalingGroups;
 import org.glassfish.api.Param;
 import org.glassfish.api.admin.AdminCommand;
 import org.glassfish.api.admin.CommandValidationException;
+import org.glassfish.hk2.api.ServiceLocator;
 
 import javax.inject.Inject;
 
 /**
- * Parent class intended to be extended from for any Scaling Groups commands, containing common validation and
- * parameters.
+ *
  *
  * @author Andrew Pielage
  */
-public abstract class ScalingGroupCommand implements AdminCommand {
+public abstract class ScaleCommand implements AdminCommand {
 
-    @Param(name = "name", primary = true)
-    protected String name;
+    @Param(name = "target", primary = true)
+    protected String target;
+
+    @Param(name = "quantity", shortName = "q", optional = true, defaultValue = "1")
+    protected int quantity;
+
+    @Inject
+    protected ServiceLocator serviceLocator;
+
+    @Inject
+    protected DeploymentGroups deploymentGroups;
 
     @Inject
     protected ScalingGroups scalingGroups;
 
     protected void validateParams() throws CommandValidationException {
-        if (!StringUtils.ok(name)) {
-            throw new CommandValidationException("Name " + name + " is not valid");
+        if (deploymentGroups == null) {
+            deploymentGroups = serviceLocator.getService(DeploymentGroups.class);
+            if (deploymentGroups == null) {
+                throw new CommandValidationException("Could not find DeploymentGroups config bean!");
+            }
+        }
+
+        if (scalingGroups == null) {
+            scalingGroups = serviceLocator.getService(ScalingGroups.class);
+            if (scalingGroups == null) {
+                throw new CommandValidationException("Could not find ScalingGroups config bean!");
+            }
+        }
+
+        if (!StringUtils.ok(target)) {
+            throw new CommandValidationException("Target must be a valid Deployment Group!");
+        }
+
+        if (quantity < 1) {
+            throw new CommandValidationException("Quantity must be greater than 0!");
         }
     }
 }

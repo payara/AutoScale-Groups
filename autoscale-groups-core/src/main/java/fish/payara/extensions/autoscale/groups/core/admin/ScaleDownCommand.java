@@ -55,7 +55,7 @@ import org.jvnet.hk2.annotations.Service;
 import java.util.List;
 
 /**
- * Asadmin Command for scaling up the number of instances within a {@link DeploymentGroup Deployment Group} using its
+ * Asadmin Command for scaling down the number of instances within a {@link DeploymentGroup Deployment Group} using its
  * configured {@link ScalingGroup Scaling Group}.
  *
  * Instead of looking up the target {@link DeploymentGroup Deployment Group} directly and then using that to grab the
@@ -69,7 +69,7 @@ import java.util.List;
 @Service
 @PerLookup
 @ExecuteOn(RuntimeType.DAS)
-public class ScaleUpCommand extends ScaleCommand {
+public class ScaleDownCommand extends ScaleCommand {
 
     @Override
     public void execute(AdminCommandContext adminCommandContext) {
@@ -91,7 +91,7 @@ public class ScaleUpCommand extends ScaleCommand {
                     // proxied. In this case, each ConfigBeanProxy *should* only only have a single interface: the
                     // scaling group config bean interface that we're trying to compare (e.g. NodesScalingGroup)
                     if (scalerService.getScalingGroupClass().equals(scalingGroup.getClass().getInterfaces()[0])) {
-                        scalerService.scaleUp(quantity, scalingGroup);
+                        scalerService.scaleDown(quantity, scalingGroup);
                         break;
                     }
                 }

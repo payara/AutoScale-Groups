@@ -40,14 +40,7 @@
 package fish.payara.extensions.autoscale.groups;
 
 import com.sun.enterprise.config.serverbeans.Config;
-import com.sun.enterprise.config.serverbeans.Server;
-import com.sun.enterprise.config.serverbeans.customvalidators.ConfigRefConstraint;
-import com.sun.enterprise.config.serverbeans.customvalidators.ConfigRefValidator;
-import com.sun.enterprise.config.serverbeans.customvalidators.NotDuplicateTargetName;
-import com.sun.enterprise.config.serverbeans.customvalidators.NotTargetKeyword;
-import com.sun.enterprise.config.serverbeans.customvalidators.ReferenceConstraint;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
-import org.glassfish.api.admin.config.Named;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;

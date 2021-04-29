@@ -39,15 +39,35 @@
  */
 package fish.payara.extensions.autoscale.groups;
 
+import com.sun.enterprise.config.serverbeans.Nodes;
+import com.sun.enterprise.util.StringUtils;
+import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
+import org.glassfish.api.admin.CommandRunner;
+import org.glassfish.api.admin.CommandValidationException;
+import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.internal.api.Globals;
+import org.glassfish.internal.api.InternalSystemAdministrator;
 import org.jvnet.hk2.annotations.Contract;
 
+import javax.inject.Inject;
+import java.util.List;
+
 /**
- * Contract interface for AutoScale Group service implementations.
+ * Contract class for AutoScale Group service implementations.
  *
  * @author Andrew Pielage
  */
 @Contract
-public interface Scaler {
+public abstract class Scaler {
+
+    @Inject
+    protected ServiceLocator serviceLocator;
+
+    @Inject
+    protected ScalingGroups scalingGroups;
+
+    @Inject
+    protected DeploymentGroups deploymentGroups;
 
     /**
      * Scale up the number of instances in the given Deployment Group by the specified amount.
@@ -58,7 +78,7 @@ public interface Scaler {
      *                     scale, which {@link com.sun.enterprise.config.serverbeans.Config Instance Config} to use, as
      *                     well as any additional implementation specific information.
      */
-    void scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup);
+    public abstract void scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup);
 
     /**
      * Scale down the number of instances in the given Deployment Group by the specified amount.
@@ -68,5 +88,61 @@ public interface Scaler {
      *                     the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
      *                     scale, as well as any additional implementation specific information.
      */
-    void scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup);
+    public abstract void scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup);
+
+    public Class<? extends ScalingGroup> getScalingGroupClass() {
+        return getClass().getAnnotation(Scales.class).value();
+    }
+
+    /**
+     * Method to validate that everything required for scaling an instance up or down is initialised
+     * and valid.
+     *
+     * @param numberOfInstances The number of instances to scale up or down.
+     * @param scalingGroup      The {@link ScalingGroup Scaling Group} configuration to use for scaling
+     */
+    protected void validate(int numberOfInstances, ScalingGroup scalingGroup)
+            throws CommandValidationException {
+        if (serviceLocator == null) {
+            serviceLocator = Globals.getDefaultBaseServiceLocator();
+
+            if (serviceLocator == null) {
+                throw new CommandValidationException("Could not find or initialise Service Locator!");
+            }
+        }
+
+        if (scalingGroup == null) {
+            throw new CommandValidationException("Scaling Group appears to be null!");
+        }
+
+        if (scalingGroups == null) {
+            scalingGroups = serviceLocator.getService(ScalingGroups.class);
+
+            if (scalingGroups == null) {
+                throw new CommandValidationException("Could not find or initialise Scaling Groups!");
+            }
+        }
+
+        if (deploymentGroups == null) {
+            deploymentGroups = serviceLocator.getService(DeploymentGroups.class);
+
+            if (deploymentGroups == null) {
+                throw new CommandValidationException("Could not find Deployment Groups!");
+            }
+        }
+
+        if (!StringUtils.ok(scalingGroup.getDeploymentGroupRef())) {
+            throw new CommandValidationException("Scaling Group " + scalingGroup.getName() +
+                    " has an invalid Deployment Group configured: " + scalingGroup.getDeploymentGroupRef());
+        }
+
+        if (deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef()) == null) {
+            throw new CommandValidationException("Deployment Group " + scalingGroup.getDeploymentGroupRef() + " does not appear to exist!");
+        }
+
+        if (numberOfInstances < 1) {
+            throw new CommandValidationException("Invalid number of instances to scale: " + numberOfInstances +
+                    ". Number of instances to scale must be greater than 1");
+        }
+    }
 }

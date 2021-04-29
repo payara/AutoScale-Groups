@@ -40,30 +40,32 @@
 
 package fish.payara.extensions.autoscale.groups.nodes;
 
+import com.sun.enterprise.config.serverbeans.Node;
 import com.sun.enterprise.config.serverbeans.Nodes;
 import com.sun.enterprise.config.serverbeans.Server;
 import com.sun.enterprise.util.StringUtils;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
-import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
 import fish.payara.extensions.autoscale.groups.Scaler;
 import fish.payara.extensions.autoscale.groups.Scales;
 import fish.payara.extensions.autoscale.groups.ScalingGroup;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.admin.CommandException;
 import org.glassfish.api.admin.CommandRunner;
+import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.api.admin.ParameterMap;
-import org.glassfish.hk2.api.ServiceLocator;
-import org.glassfish.internal.api.Globals;
 import org.glassfish.internal.api.InternalSystemAdministrator;
 import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Inject;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * {@link Scaler} implementation service which performs the scale up and down procedures across a selection of
@@ -73,10 +75,7 @@ import java.util.logging.Logger;
  */
 @Service
 @Scales(NodesScalingGroup.class)
-public class NodesScaler implements Scaler {
-
-    @Inject
-    private ServiceLocator serviceLocator;
+public class NodesScaler extends Scaler {
 
     @Inject
     private InternalSystemAdministrator internalSystemAdministrator;
@@ -85,16 +84,73 @@ public class NodesScaler implements Scaler {
     private CommandRunner commandRunner;
 
     @Inject
-    private DeploymentGroups deploymentGroups;
-
-    @Inject
     private Nodes nodes;
 
     private static final Logger LOGGER = Logger.getLogger(NodesScaler.class.getName());
 
     @Override
+    protected void validate(int numberOfInstances, ScalingGroup scalingGroup) throws CommandValidationException {
+        if (commandRunner == null) {
+            commandRunner = serviceLocator.getService(CommandRunner.class);
+
+            if (commandRunner == null) {
+                throw new CommandValidationException(
+                        "Could not find or initialise CommandRunner to execute commands with!");
+            }
+        }
+
+        if (internalSystemAdministrator == null) {
+            internalSystemAdministrator = serviceLocator.getService(InternalSystemAdministrator.class);
+
+            if (internalSystemAdministrator == null) {
+                throw new CommandValidationException(
+                        "Could not find or initialise InternalSystemAdministrator to execute commands with!");
+            }
+        }
+
+        List<NodesScalingGroup> nodesScalingGroups = scalingGroups.getScalingGroupsOfType(NodesScalingGroup.class);
+
+        if (nodesScalingGroups.isEmpty()) {
+            throw new CommandValidationException("No Nodes Scaling Groups found!");
+        }
+
+        boolean exists = false;
+        for (NodesScalingGroup nodesScalingGroup : nodesScalingGroups) {
+            if (nodesScalingGroup.getName().equals(scalingGroup.getName())) {
+                exists = true;
+                break;
+            }
+        }
+
+        if (!exists) {
+            throw new CommandValidationException("Scaling Group " + scalingGroup.getName() +
+                    " is not a Nodes Scaling Group.");
+        }
+
+        if (nodes == null) {
+            nodes = serviceLocator.getService(Nodes.class);
+
+            if (nodes == null) {
+                throw new CommandValidationException("Could not find Nodes!");
+            }
+        }
+
+        for (String nodeRef : ((NodesScalingGroup) scalingGroup).getNodeRefs()) {
+            if (!StringUtils.ok(nodeRef)) {
+                throw new CommandValidationException("Scaling Group has an invalid node reference configured: " + nodeRef);
+            }
+
+            if (nodes.getNode(nodeRef) == null) {
+                throw new CommandValidationException("Node " + nodeRef + " does not appear to exist!");
+            }
+        }
+    }
+
+    @Override
     public void scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup) {
-        if (!initialiseAndValidate(numberOfNewInstances, scalingGroup)) {
+        try {
+            validate(numberOfNewInstances, scalingGroup);
+        } catch (CommandValidationException commandValidationException) {
             LOGGER.severe("Cancelling scale up operation, an error was encountered during validation");
             return;
         }
@@ -107,106 +163,19 @@ public class NodesScaler implements Scaler {
         }
     }
 
-    /**
-     * Method to initialise and validate that everything required for scaling an instance up or down is initialised
-     * and valid.
-     *
-     * @param numberOfInstances The number of instances to scale up or down.
-     * @param scalingGroup The {@link ScalingGroup Scaling Group} configuration to use for scaling
-     * @return true if everything is initialised and valid, otherwise logs message as to what failed and returns false.
-     */
-    private boolean initialiseAndValidate(int numberOfInstances, ScalingGroup scalingGroup) {
-        if (serviceLocator == null) {
-            serviceLocator = Globals.getDefaultBaseServiceLocator();
-
-            if (serviceLocator == null) {
-                LOGGER.severe("Could not find or initialise Service Locator!");
-                return false;
-            }
-        }
-
-        if (commandRunner == null) {
-            commandRunner = serviceLocator.getService(CommandRunner.class);
-
-            if (commandRunner == null) {
-                LOGGER.severe("Could not find or initialise CommandRunner to execute commands with!");
-                return false;
-            }
-        }
-
-        if (internalSystemAdministrator == null) {
-            internalSystemAdministrator = serviceLocator.getService(InternalSystemAdministrator.class);
-
-            if (internalSystemAdministrator == null) {
-                LOGGER.severe("Could not find or initialise InternalSystemAdministrator to execute commands with!");
-                return false;
-            }
-        }
-
-        if (scalingGroup == null) {
-            LOGGER.severe("Scaling Group appears to be null!");
-            return false;
-        }
-
-        if (!(scalingGroup instanceof NodesScalingGroup)) {
-            LOGGER.severe("Scaling Group does not appear to be one of the correct type!");
-            return false;
-        }
-
-        if (deploymentGroups == null) {
-            deploymentGroups = serviceLocator.getService(DeploymentGroups.class);
-
-            if (deploymentGroups == null) {
-                LOGGER.severe("Could not find Deployment Groups!");
-                return false;
-            }
-        }
-
-        if (!StringUtils.ok(scalingGroup.getDeploymentGroupRef())) {
-            LOGGER.severe("Scaling Group " + scalingGroup.getName() +
-                    " has an invalid Deployment Group configured: " + scalingGroup.getDeploymentGroupRef());
-            return false;
-        }
-
-        if (deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef()) == null) {
-            LOGGER.severe("Deployment Group " + scalingGroup.getDeploymentGroupRef() + " does not appear to exist!");
-            return false;
-        }
-
-        if (numberOfInstances < 1) {
-            LOGGER.warning("Invalid number of instances to scale: " + numberOfInstances +
-                    ". Number of instances to scale must be greater than 1");
-            return false;
-        }
-
-        if (nodes == null) {
-            nodes = serviceLocator.getService(Nodes.class);
-
-            if (nodes == null) {
-                LOGGER.severe("Could not find Nodes!");
-                return false;
-            }
-        }
-
-        for (String nodeRef : ((NodesScalingGroup) scalingGroup).getNodeRefs()) {
-            if (!StringUtils.ok(nodeRef)) {
-                LOGGER.severe("Scaling Group has an invalid node reference configured: " + nodeRef);
-                return false;
-            }
-
-            if (nodes.getNode(nodeRef) == null) {
-                LOGGER.severe("Node " + nodeRef + " does not appear to exist!");
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private Set<String> createInstances(int numberOfNewInstances, ScalingGroup scalingGroup) throws CommandException {
         Set<String> instanceNames = new HashSet<>();
         int instanceCounter = 0;
         while (instanceCounter < numberOfNewInstances) {
+            // Determine where to create the instance
+            DeploymentGroup deploymentGroup = deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef());
+            Map<String, Integer> scalingGroupBalance = getNodesInstanceBalance(
+                    deploymentGroup.getInstances(), ((NodesScalingGroup) scalingGroup).getNodeRefs());
+
+            // Get the node with the least instances
+            Map.Entry<String, Integer> maxNodeEntry = Collections.min(
+                    scalingGroupBalance.entrySet(), Comparator.comparing(Map.Entry::getValue));
+
             ActionReport actionReport = commandRunner.getActionReport("plain");
             CommandRunner.CommandInvocation createInstanceCommand = commandRunner.getCommandInvocation(
                     "create-instance", actionReport, internalSystemAdministrator.getSubject());
@@ -216,6 +185,7 @@ public class NodesScaler implements Scaler {
             parameterMap.add("config", scalingGroup.getConfigRef());
             parameterMap.add("autoname", "true");
             parameterMap.add("extraterse", "true");
+            parameterMap.add("node", maxNodeEntry.getKey());
 
             createInstanceCommand.parameters(parameterMap);
             createInstanceCommand.execute();
@@ -253,7 +223,9 @@ public class NodesScaler implements Scaler {
 
     @Override
     public void scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup) {
-        if (!initialiseAndValidate(numberOfInstancesToRemove, scalingGroup)) {
+        try {
+            validate(numberOfInstancesToRemove, scalingGroup);
+        } catch (CommandValidationException commandValidationException) {
             LOGGER.severe("Cancelling scale down operation, an error was encountered during validation");
             return;
         }
@@ -271,16 +243,49 @@ public class NodesScaler implements Scaler {
             throws CommandException {
         Set<String> instanceNames = new HashSet<>();
 
-        // Existence of deployment group checked in NodesScaler#initialiseAndValidate method so no need to check again
+        // Quick check: will we just be removing all instances? If so we can skip trying to figure out the balance
+        boolean removeAll = false;
         DeploymentGroup deploymentGroup = deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef());
-
-        // Get the balance of instances across the nodes within this Deployment Group and Scaling Group
         List<Server> instances = deploymentGroup.getInstances();
 
-        // Existence of nodes and type of scalingGroup checked in NodesScaler#initialiseAndValidate method
-        List<String> nodeRefs = ((NodesScalingGroup) scalingGroup).getNodeRefs();
+        if (instances.size() <= numberOfInstancesToRemove) {
+            removeAll = true;
+        }
 
-        // Get current balance
+        if (removeAll) {
+            for (Server server : instances) {
+                instanceNames.add(server.getName());
+            }
+            return instanceNames;
+        }
+
+        // Get the balance of instances across the nodes within this Deployment Group and Scaling Group
+        List<String> nodeRefs = ((NodesScalingGroup) scalingGroup).getNodeRefs();
+        Map<String, Integer> scalingGroupBalance = getNodesInstanceBalance(instances, nodeRefs);
+
+        // Loop until we've removed the requested number of instances
+        int instanceCounter = numberOfInstancesToRemove;
+        while (instanceCounter > 0) {
+            // Get the node with the most instances
+            Map.Entry<String, Integer> maxNodeEntry = Collections.max(
+                    scalingGroupBalance.entrySet(), Comparator.comparing(Map.Entry::getValue));
+
+            // Pick an instance from that node
+            for (Server server : instances) {
+                if (!instanceNames.contains(server.getName()) && server.getNodeRef().equals(maxNodeEntry.getKey())) {
+                    instanceNames.add(server.getName());
+                    scalingGroupBalance.put(maxNodeEntry.getKey(), maxNodeEntry.getValue() - 1);
+                    break;
+                }
+            }
+
+            instanceCounter--;
+        }
+
+        return instanceNames;
+    }
+
+    private Map<String, Integer> getNodesInstanceBalance(List<Server> instances, List<String> nodeRefs) {
         Map<String, Integer> scalingGroupBalance = new HashMap<>();
         for (String nodeRef : nodeRefs) {
             scalingGroupBalance.put(nodeRef, 0);
@@ -289,8 +294,8 @@ public class NodesScaler implements Scaler {
         for (Server instance : instances) {
             scalingGroupBalance.put(instance.getNodeRef(), scalingGroupBalance.get(instance.getNodeRef()) + 1);
         }
-        
-        return instanceNames;
+
+        return scalingGroupBalance;
     }
 
     private void stopInstances(Set<String> instanceNames) {
