@@ -66,7 +66,7 @@ import java.util.List;
  *
  * @author Andrew Pielage
  */
-@Service
+@Service(name = "scale-down")
 @PerLookup
 @ExecuteOn(RuntimeType.DAS)
 public class ScaleDownCommand extends ScaleCommand {
