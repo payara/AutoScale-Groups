@@ -40,7 +40,7 @@
 
 package fish.payara.extensions.autoscale.groups.nodes;
 
-import com.sun.enterprise.config.serverbeans.Node;
+import com.sun.enterprise.config.serverbeans.Domain;
 import com.sun.enterprise.config.serverbeans.Nodes;
 import com.sun.enterprise.config.serverbeans.Server;
 import com.sun.enterprise.util.StringUtils;
@@ -48,6 +48,7 @@ import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
 import fish.payara.extensions.autoscale.groups.Scaler;
 import fish.payara.extensions.autoscale.groups.Scales;
 import fish.payara.extensions.autoscale.groups.ScalingGroup;
+import fish.payara.extensions.autoscale.groups.core.admin.ScaleCommandHelper;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.admin.CommandException;
 import org.glassfish.api.admin.CommandRunner;
@@ -57,15 +58,13 @@ import org.glassfish.internal.api.InternalSystemAdministrator;
 import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 /**
  * {@link Scaler} implementation service which performs the scale up and down procedures across a selection of
@@ -156,40 +155,47 @@ public class NodesScaler extends Scaler {
         }
 
         try {
-            Set<String> instanceNames = createInstances(numberOfNewInstances, scalingGroup);
+            List<String> instanceNames = createInstances(numberOfNewInstances, scalingGroup);
             startInstances(instanceNames);
         } catch (CommandException commandException) {
             LOGGER.severe(commandException.getMessage());
         }
     }
 
-    private Set<String> createInstances(int numberOfNewInstances, ScalingGroup scalingGroup) throws CommandException {
-        Set<String> instanceNames = new HashSet<>();
+    private List<String> createInstances(int numberOfNewInstances, ScalingGroup scalingGroup) throws CommandException {
+        List<String> instanceNames = new ArrayList<>();
+
+        // Get the starting balance of instances to nodes
+        DeploymentGroup deploymentGroup = deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef());
+        Map<String, Integer> scalingGroupBalance = getNodesInstanceBalance(
+                deploymentGroup.getInstances(), ((NodesScalingGroup) scalingGroup).getNodeRefs());
+
+        // Determine where to create each instance
         int instanceCounter = 0;
         while (instanceCounter < numberOfNewInstances) {
-            // Determine where to create the instance
-            DeploymentGroup deploymentGroup = deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef());
-            Map<String, Integer> scalingGroupBalance = getNodesInstanceBalance(
-                    deploymentGroup.getInstances(), ((NodesScalingGroup) scalingGroup).getNodeRefs());
-
             // Get the node with the least instances
             Map.Entry<String, Integer> maxNodeEntry = Collections.min(
                     scalingGroupBalance.entrySet(), Comparator.comparing(Map.Entry::getValue));
 
-            ActionReport actionReport = commandRunner.getActionReport("plain");
-            CommandRunner.CommandInvocation createInstanceCommand = commandRunner.getCommandInvocation(
-                    "create-instance", actionReport, internalSystemAdministrator.getSubject());
-
+            // Create the parameter map for the create-instance command
             ParameterMap parameterMap = new ParameterMap();
             parameterMap.add("deploymentgroup", scalingGroup.getDeploymentGroupRef());
-            parameterMap.add("config", scalingGroup.getConfigRef());
+            if (!scalingGroup.getConfigRef().equals("default-config")) {
+                parameterMap.add("config", scalingGroup.getConfigRef());
+            }
             parameterMap.add("autoname", "true");
             parameterMap.add("extraterse", "true");
             parameterMap.add("node", maxNodeEntry.getKey());
 
+            // Execute the command with our parameters - we don't want to execute them in a parallel manner since
+            // we'll run into issues with locking on the config beans
+            ActionReport actionReport = commandRunner.getActionReport("plain");
+            CommandRunner.CommandInvocation createInstanceCommand = commandRunner.getCommandInvocation(
+                    "create-instance", actionReport, internalSystemAdministrator.getSubject());
             createInstanceCommand.parameters(parameterMap);
             createInstanceCommand.execute();
 
+            // Check if we have any failures - we don't want to continue if any failed
             if (actionReport.hasFailures()) {
                 LOGGER.severe("Encountered an error scaling up instances. " +
                         instanceCounter + " were created out of the requested " + numberOfNewInstances + ". " +
@@ -200,25 +206,20 @@ public class NodesScaler extends Scaler {
             // The output of the create-instance command with the "extraterse" option should just be the instance name
             instanceNames.add(actionReport.getMessage());
 
+            // Adjust the node balance
+            scalingGroupBalance.put(maxNodeEntry.getKey(), maxNodeEntry.getValue() + 1);
+
+            // Increment the counter for our loop
             instanceCounter++;
         }
 
         return instanceNames;
     }
 
-    private void startInstances(Set<String> instanceNames) {
-        for (String instanceName : instanceNames) {
-            ActionReport actionReport = commandRunner.getActionReport("plain");
-            CommandRunner.CommandInvocation startInstanceCommand = commandRunner.getCommandInvocation(
-                    "start-instance", actionReport, internalSystemAdministrator.getSubject());
-
-            ParameterMap parameterMap = new ParameterMap();
-            // Primary parameter is called DEFAULT, regardless of its actual name
-            parameterMap.add("DEFAULT", instanceName);
-
-            startInstanceCommand.parameters(parameterMap);
-            startInstanceCommand.execute();
-        }
+    private void startInstances(List<String> instanceNames) {
+        ScaleCommandHelper scaleCommandHelper = new ScaleCommandHelper(serviceLocator.getService(Domain.class),
+                commandRunner, internalSystemAdministrator.getSubject());
+        scaleCommandHelper.runCommandInParallelAcrossInstances("start-instance", new ParameterMap(), instanceNames, true);
     }
 
     @Override
@@ -231,7 +232,7 @@ public class NodesScaler extends Scaler {
         }
 
         try {
-            Set<String> instanceNames = determineInstancesToStop(numberOfInstancesToRemove, scalingGroup);
+            List<String> instanceNames = determineInstancesToStop(numberOfInstancesToRemove, scalingGroup);
             stopInstances(instanceNames);
             deleteInstances(instanceNames);
         } catch (CommandException commandException) {
@@ -239,9 +240,9 @@ public class NodesScaler extends Scaler {
         }
     }
 
-    private Set<String> determineInstancesToStop(int numberOfInstancesToRemove, ScalingGroup scalingGroup)
+    private List<String> determineInstancesToStop(int numberOfInstancesToRemove, ScalingGroup scalingGroup)
             throws CommandException {
-        Set<String> instanceNames = new HashSet<>();
+        List<String> instanceNames = new ArrayList<>();
 
         // Quick check: will we just be removing all instances? If so we can skip trying to figure out the balance
         boolean removeAll = false;
@@ -298,11 +299,25 @@ public class NodesScaler extends Scaler {
         return scalingGroupBalance;
     }
 
-    private void stopInstances(Set<String> instanceNames) {
-
+    private void stopInstances(List<String> instanceNames) {
+        ScaleCommandHelper scaleCommandHelper = new ScaleCommandHelper(serviceLocator.getService(Domain.class),
+                commandRunner, internalSystemAdministrator.getSubject());
+        scaleCommandHelper.runCommandInParallelAcrossInstances("stop-instance", new ParameterMap(),
+                instanceNames, true);
     }
 
-    private void deleteInstances(Set<String> deleteInstances) {
+    private void deleteInstances(List<String> instanceNames) {
+        for (String instanceName : instanceNames) {
+            ActionReport actionReport = commandRunner.getActionReport("plain");
+            CommandRunner.CommandInvocation deleteInstanceCommand = commandRunner.getCommandInvocation(
+                    "delete-instance", actionReport, internalSystemAdministrator.getSubject());
 
+            ParameterMap parameterMap = new ParameterMap();
+            // Primary parameter is called DEFAULT, regardless of its actual name
+            parameterMap.add("DEFAULT", instanceName);
+
+            deleteInstanceCommand.parameters(parameterMap);
+            deleteInstanceCommand.execute();
+        }
     }
 }

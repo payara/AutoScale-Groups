@@ -72,7 +72,7 @@ public interface ScalingGroup extends ConfigBeanProxy, Payload {
      *
      * @return The name of the {@link Config}
      */
-    @Attribute(defaultValue = "default-config")
+    @Attribute(required = true)
     @NotNull
     String getConfigRef();
     void setConfigRef(String configRef) throws PropertyVetoException;

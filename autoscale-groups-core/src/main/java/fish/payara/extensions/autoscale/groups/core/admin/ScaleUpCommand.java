@@ -46,6 +46,7 @@ import fish.payara.extensions.autoscale.groups.ScalingGroup;
 import fish.payara.extensions.autoscale.groups.ScalingGroups;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.admin.AdminCommandContext;
+import org.glassfish.api.admin.CommandLock;
 import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.api.admin.ExecuteOn;
 import org.glassfish.api.admin.RuntimeType;
@@ -68,6 +69,7 @@ import java.util.List;
  */
 @Service(name = "scale-up")
 @PerLookup
+@CommandLock(CommandLock.LockType.NONE) // Defer locking to any chained commands
 @ExecuteOn(RuntimeType.DAS)
 public class ScaleUpCommand extends ScaleCommand {
 

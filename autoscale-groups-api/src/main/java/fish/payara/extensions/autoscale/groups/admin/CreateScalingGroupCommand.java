@@ -60,7 +60,7 @@ public abstract class CreateScalingGroupCommand extends ScalingGroupCommand {
     @Param(name = "deploymentGroup", alias = "deploymentgroup")
     protected String deploymentGroupRef;
 
-    @Param(name = "config", optional = true)
+    @Param(name = "config")
     protected String configRef;
 
     @Inject
@@ -90,7 +90,11 @@ public abstract class CreateScalingGroupCommand extends ScalingGroupCommand {
             }
         }
 
-        if (StringUtils.ok(configRef) && configs.getConfigByName(configRef) == null) {
+        if (!StringUtils.ok(configRef)) {
+            throw new CommandValidationException("Config name " + configRef + " is not valid");
+        }
+
+        if (configs.getConfigByName(configRef) == null) {
             throw new CommandValidationException("Config name " + configRef + " does not exist");
         }
     }

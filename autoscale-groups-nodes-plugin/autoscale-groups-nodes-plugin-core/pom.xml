@@ -63,6 +63,11 @@
             <groupId>fish.payara.server.internal.common</groupId>
             <artifactId>internal-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>fish.payara.extensions.autoscale.groups</groupId>
+            <artifactId>autoscale-groups-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
 </project>

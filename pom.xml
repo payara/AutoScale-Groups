@@ -166,6 +166,13 @@
                 <version>${payara.version}</version>
                 <optional>true</optional>
             </dependency>
+            <!-- Useful for executing commands across a cluster or deployment group -->
+            <dependency>
+                <groupId>fish.payara.server.internal.cluster</groupId>
+                <artifactId>cluster-admin</artifactId>
+                <version>${payara.version}</version>
+                <optional>true</optional>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

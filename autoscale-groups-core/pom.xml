@@ -24,6 +24,10 @@
             <groupId>fish.payara.server.internal.common</groupId>
             <artifactId>internal-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>fish.payara.server.internal.cluster</groupId>
+            <artifactId>cluster-admin</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
