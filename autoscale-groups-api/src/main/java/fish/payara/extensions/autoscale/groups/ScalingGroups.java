@@ -63,7 +63,7 @@ public interface ScalingGroups extends DomainExtension {
      *
      * @return The list of all registered {@link ScalingGroup} ConfigBeans.
      */
-    @Element("scaling-group")
+    @Element("*")
     List<ScalingGroup> getScalingGroups();
 
     /**
