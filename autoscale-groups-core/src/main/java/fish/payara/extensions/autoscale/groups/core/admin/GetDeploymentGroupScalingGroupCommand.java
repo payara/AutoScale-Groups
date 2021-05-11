@@ -41,9 +41,9 @@
 package fish.payara.extensions.autoscale.groups.core.admin;
 
 import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
-import fish.payara.extensions.autoscale.groups.Scaler;
+import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
 import fish.payara.extensions.autoscale.groups.ScalingGroup;
-import fish.payara.extensions.autoscale.groups.ScalingGroups;
+import fish.payara.extensions.autoscale.groups.admin.ScalingGroupCommand;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.admin.AdminCommandContext;
 import org.glassfish.api.admin.CommandValidationException;
@@ -55,34 +55,26 @@ import org.glassfish.api.admin.RuntimeType;
 import org.glassfish.hk2.api.PerLookup;
 import org.jvnet.hk2.annotations.Service;
 
-import java.util.List;
+import javax.inject.Inject;
+import java.util.Properties;
 
-/**
- * Asadmin Command for scaling down the number of instances within a {@link DeploymentGroup Deployment Group} using its
- * configured {@link ScalingGroup Scaling Group}.
- *
- * Instead of looking up the target {@link DeploymentGroup Deployment Group} directly and then using that to grab the
- * {@link ScalingGroup Scaling Group} config, we search through the {@link ScalingGroups Scaling Groups} for a
- * {@link ScalingGroup Scaling Group} that is linked to the target {@link DeploymentGroup Deployment Group}. This is
- * done since the {@link DeploymentGroup Deployment Group} doesn't hold a reference to the
- * {@link ScalingGroup Scaling Group} so as to allow the Core Server to not depend on the AutoScale Groups plugin.
- *
- * @author Andrew Pielage
- */
-@Service(name = "scale-down")
+@Service(name = "get-deployment-group-scaling-group")
 @PerLookup
 @ExecuteOn(RuntimeType.DAS)
 @RestEndpoints({
         @RestEndpoint(configBean = DeploymentGroup.class,
-                opType = RestEndpoint.OpType.POST,
-                path = "scale-down",
-                description = "Scales down a Deployment Group",
+                opType = RestEndpoint.OpType.GET,
+                path = "get-deployment-group-scaling-group",
+                description = "Gets the Scaling Group configured for this Deployment Group",
                 params = {
-                        @RestParam(name = "id", value = "$parent")
+                        @RestParam(name = "name", value = "$parent")
                 }
         )
 })
-public class ScaleDownCommand extends ScaleCommand {
+public class GetDeploymentGroupScalingGroupCommand extends ScalingGroupCommand {
+
+    @Inject
+    private DeploymentGroups deploymentGroups;
 
     @Override
     public void execute(AdminCommandContext adminCommandContext) {
@@ -94,22 +86,36 @@ public class ScaleDownCommand extends ScaleCommand {
             return;
         }
 
-        for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-            if (scalingGroup.getDeploymentGroupRef().equals(target)) {
-                // Get the Scaler implementation service for this scaling group type
-                List<Scaler> scalerServices = serviceLocator.getAllServices(Scaler.class);
-                for (Scaler scalerService : scalerServices) {
-                    // Since we're working with a ConfigBeanProxy we can't simply do getClass() since this would return
-                    // the proxy class. Instead, we can grab the interfaces of this proxy to what's actually being
-                    // proxied. In this case, each ConfigBeanProxy *should* only only have a single interface: the
-                    // scaling group config bean interface that we're trying to compare (e.g. NodesScalingGroup)
-                    if (scalerService.getScalingGroupClass().equals(scalingGroup.getClass().getInterfaces()[0])) {
-                        scalerService.scaleDown(quantity, scalingGroup);
-                        break;
-                    }
-                }
+        ScalingGroup scalingGroup = null;
+
+        // Search through the scaling groups, checking for the one with a reference to our requested deployment group
+        for (ScalingGroup scalingGroupIterator : scalingGroups.getScalingGroups()) {
+            if (scalingGroupIterator.getDeploymentGroupRef().equals(name)) {
+                scalingGroup = scalingGroupIterator;
                 break;
             }
+        }
+
+        if (scalingGroup == null) {
+            // Don't mark as a failure - it is acceptable for a deployment group to not have a scaling group
+            adminCommandContext.getActionReport().setMessage("Deployment Group " + name +
+                    " does not have a Scaling Group");
+            return;
+        }
+
+        adminCommandContext.getActionReport().setMessage("Scaling Group: " + scalingGroup.getName());
+
+        Properties extraProps = new Properties();
+        extraProps.put("scalingGroup", scalingGroup.getName());
+        adminCommandContext.getActionReport().setExtraProperties(extraProps);
+    }
+
+    @Override
+    protected void validateParams() throws CommandValidationException {
+        super.validateParams();
+
+        if (deploymentGroups.getDeploymentGroup(name) == null) {
+            throw new CommandValidationException("Deployment Group " + name + "does not exist");
         }
     }
 }

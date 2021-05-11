@@ -37,62 +37,18 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups.core.admin;
 
-import fish.payara.extensions.autoscale.groups.ScalingGroups;
-import fish.payara.extensions.autoscale.groups.admin.ScalingGroupCommand;
-import org.glassfish.api.ActionReport;
-import org.glassfish.api.admin.AdminCommandContext;
+package fish.payara.extensions.autoscale.groups.admin;
+
 import org.glassfish.api.admin.CommandValidationException;
-import org.glassfish.api.admin.ExecuteOn;
-import org.glassfish.api.admin.RestEndpoint;
-import org.glassfish.api.admin.RestEndpoints;
-import org.glassfish.api.admin.RuntimeType;
-import org.glassfish.hk2.api.PerLookup;
-import org.jvnet.hk2.annotations.Service;
-import org.jvnet.hk2.config.ConfigSupport;
-import org.jvnet.hk2.config.TransactionFailure;
 
 /**
- * Command for deleting a {@link fish.payara.extensions.autoscale.groups.ScalingGroup Scaling Group}. Outside of any
- * unique clean up an extension may wish to perform upon deletion, this command should suffice for deleting a
- * {@link fish.payara.extensions.autoscale.groups.ScalingGroup} and so is not included in the API.
+ * Parent class intended to be extended from for any Scaling Groups "get" commands, containing common validation and
+ * parameters.
  *
  * @author Andrew Pielage
  */
-@Service(name = "delete-scaling-group")
-@PerLookup
-@ExecuteOn(RuntimeType.DAS)
-@RestEndpoints({
-        @RestEndpoint(configBean = ScalingGroups.class,
-                opType = RestEndpoint.OpType.DELETE,
-                path = "delete-scaling-group",
-                description = "Deletes a Scaling Group"
-        )
-})
-public class DeleteScalingGroupCommand extends ScalingGroupCommand {
-
-    @Override
-    public void execute(AdminCommandContext adminCommandContext) {
-        try {
-            validateParams();
-        } catch (CommandValidationException commandValidationException) {
-            adminCommandContext.getActionReport().setFailureCause(commandValidationException);
-            adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.FAILURE);
-            return;
-        }
-
-        try {
-            ConfigSupport.apply(scalingGroupsProxy -> {
-                scalingGroupsProxy.getScalingGroups().remove(scalingGroupsProxy.getScalingGroup(name));
-
-                return scalingGroupsProxy;
-            }, scalingGroups);
-        } catch (TransactionFailure transactionFailure) {
-            adminCommandContext.getActionReport().setFailureCause(transactionFailure);
-            adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.FAILURE);
-        }
-    }
+public abstract class GetScalingGroupConfigurationCommand extends ScalingGroupCommand {
 
     @Override
     protected void validateParams() throws CommandValidationException {

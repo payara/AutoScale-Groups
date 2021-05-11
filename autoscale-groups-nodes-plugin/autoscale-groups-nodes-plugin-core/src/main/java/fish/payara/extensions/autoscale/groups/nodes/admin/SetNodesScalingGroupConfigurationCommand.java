@@ -42,8 +42,7 @@ package fish.payara.extensions.autoscale.groups.nodes.admin;
 
 import com.sun.enterprise.config.serverbeans.Nodes;
 import com.sun.enterprise.util.StringUtils;
-import fish.payara.extensions.autoscale.groups.ScalingGroups;
-import fish.payara.extensions.autoscale.groups.admin.CreateScalingGroupCommand;
+import fish.payara.extensions.autoscale.groups.admin.SetScalingGroupConfigurationCommand;
 import fish.payara.extensions.autoscale.groups.nodes.NodesScalingGroup;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.Param;
@@ -52,6 +51,7 @@ import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.api.admin.ExecuteOn;
 import org.glassfish.api.admin.RestEndpoint;
 import org.glassfish.api.admin.RestEndpoints;
+import org.glassfish.api.admin.RestParam;
 import org.glassfish.api.admin.RuntimeType;
 import org.glassfish.hk2.api.PerLookup;
 import org.jvnet.hk2.annotations.Service;
@@ -65,19 +65,22 @@ import java.util.List;
  *
  * @author Andrew Pielage
  */
-@Service(name = "create-nodes-scaling-group")
+@Service(name = "set-nodes-scaling-group-configuration")
 @PerLookup
 @ExecuteOn(RuntimeType.DAS)
 @RestEndpoints({
-        @RestEndpoint(configBean = ScalingGroups.class,
+        @RestEndpoint(configBean = NodesScalingGroup.class,
                 opType = RestEndpoint.OpType.POST,
-                path = "create-nodes-scaling-group",
-                description = "Creates a Nodes Scaling Group"
+                path = "set-nodes-scaling-group-configuration",
+                description = "Sets the configuration of the target Scaling Group",
+                params = {
+                        @RestParam(name = "id", value = "$parent")
+                }
         )
 })
-public class CreateNodesScalingGroupCommand extends CreateScalingGroupCommand {
-    
-    @Param(name = "nodes")
+public class SetNodesScalingGroupConfigurationCommand extends SetScalingGroupConfigurationCommand {
+
+    @Param(name = "nodes", optional = true)
     private List<String> nodeRefs;
 
     @Inject
@@ -95,19 +98,28 @@ public class CreateNodesScalingGroupCommand extends CreateScalingGroupCommand {
 
         try {
             ConfigSupport.apply(scalingGroupsProxy -> {
-                NodesScalingGroup nodesScalingGroupProxy = scalingGroupsProxy.createChild(NodesScalingGroup.class);
-                nodesScalingGroupProxy.setName(name);
-                nodesScalingGroupProxy.setDeploymentGroupRef(deploymentGroupRef);
+                ConfigSupport.apply(nodesScalingGroupProxy -> {
+                    if (StringUtils.ok(deploymentGroupRef)) {
+                        nodesScalingGroupProxy.setDeploymentGroupRef(deploymentGroupRef);
+                    }
 
-                if (StringUtils.ok(configRef)) {
-                    nodesScalingGroupProxy.setConfigRef(configRef);
-                }
+                    if (StringUtils.ok(configRef)) {
+                        nodesScalingGroupProxy.setConfigRef(configRef);
+                    }
 
-                for (String nodeRef : nodeRefs) {
-                    nodesScalingGroupProxy.getNodeRefs().add(nodeRef);
-                }
+                    if (nodeRefs != null && !nodeRefs.isEmpty()) {
+                        nodesScalingGroupProxy.getNodeRefs().clear();
+                        for (String nodeRef : nodeRefs) {
+                            // Ensure no duplicates
+                            if (!nodesScalingGroupProxy.getNodeRefs().contains(nodeRef)) {
+                                nodesScalingGroupProxy.getNodeRefs().add(nodeRef);
+                            }
+                        }
+                    }
 
-                scalingGroupsProxy.getScalingGroups().add(nodesScalingGroupProxy);
+                    return nodesScalingGroupProxy;
+                }, (NodesScalingGroup) scalingGroupsProxy.getScalingGroup(name));
+
                 return scalingGroupsProxy;
             }, scalingGroups);
         } catch (TransactionFailure transactionFailure) {
@@ -120,9 +132,36 @@ public class CreateNodesScalingGroupCommand extends CreateScalingGroupCommand {
     protected void validateParams() throws CommandValidationException {
         super.validateParams();
 
-        for (String nodeRef : nodeRefs) {
-            if (!StringUtils.ok(nodeRef) || nodes.getNode(nodeRef) == null) {
-                throw new CommandValidationException("Node name " + nodeRef + " is not valid or doesn't exist");
+        List<NodesScalingGroup> nodesScalingGroups = scalingGroups.getScalingGroupsOfType(NodesScalingGroup.class);
+
+        if (nodesScalingGroups.isEmpty()) {
+            throw new CommandValidationException("Scaling Group " + name + " is not a Nodes Scaling Group.");
+        }
+
+        boolean exists = false;
+        for (NodesScalingGroup nodesScalingGroup : nodesScalingGroups) {
+            if (nodesScalingGroup.getName().equals(name)) {
+                exists = true;
+                break;
+            }
+        }
+
+        if (!exists) {
+            throw new CommandValidationException("Scaling Group " + name + " is not a Nodes Scaling Group.");
+        }
+
+        if (nodeRefs != null && !nodeRefs.isEmpty()) {
+            for (String nodeRef : nodeRefs) {
+                if (!StringUtils.ok(nodeRef) || nodes.getNode(nodeRef) == null) {
+                    throw new CommandValidationException("Node name " + nodeRef + " is not valid or doesn't exist");
+                }
+
+                if (!nodeRef.equals(nodes.getDefaultLocalNode().getName())) {
+                    String nodeType = nodes.getNode(nodeRef).getType();
+                    if (nodeType.equals("CONFIG") || nodeType.equals("TEMP")) {
+                        throw new CommandValidationException("Node " + nodeRef + " is not a valid type: " + nodeType);
+                    }
+                }
             }
         }
     }

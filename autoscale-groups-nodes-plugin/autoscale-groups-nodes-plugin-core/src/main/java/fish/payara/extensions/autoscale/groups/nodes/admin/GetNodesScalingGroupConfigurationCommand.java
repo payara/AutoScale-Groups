@@ -40,38 +40,43 @@
 
 package fish.payara.extensions.autoscale.groups.nodes.admin;
 
-import com.sun.enterprise.config.serverbeans.Nodes;
 import com.sun.enterprise.util.StringUtils;
-import fish.payara.extensions.autoscale.groups.admin.SetScalingGroupConfigurationCommand;
+import fish.payara.extensions.autoscale.groups.admin.GetScalingGroupConfigurationCommand;
 import fish.payara.extensions.autoscale.groups.nodes.NodesScalingGroup;
 import org.glassfish.api.ActionReport;
-import org.glassfish.api.Param;
 import org.glassfish.api.admin.AdminCommandContext;
 import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.api.admin.ExecuteOn;
+import org.glassfish.api.admin.RestEndpoint;
+import org.glassfish.api.admin.RestEndpoints;
+import org.glassfish.api.admin.RestParam;
 import org.glassfish.api.admin.RuntimeType;
 import org.glassfish.hk2.api.PerLookup;
 import org.jvnet.hk2.annotations.Service;
-import org.jvnet.hk2.config.ConfigSupport;
-import org.jvnet.hk2.config.TransactionFailure;
 
-import javax.inject.Inject;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  *
  * @author Andrew Pielage
  */
-@Service(name = "set-nodes-scaling-group-configuration")
+@Service(name = "get-nodes-scaling-group-configuration")
 @PerLookup
 @ExecuteOn(RuntimeType.DAS)
-public class SetNodesScalingGroupCommand extends SetScalingGroupConfigurationCommand {
-
-    @Param(name = "nodes", optional = true)
-    private List<String> nodeRefs;
-
-    @Inject
-    protected Nodes nodes;
+@RestEndpoints({
+        @RestEndpoint(configBean = NodesScalingGroup.class,
+                opType = RestEndpoint.OpType.GET,
+                path = "get-nodes-scaling-group-configuration",
+                description = "Gets the configuration of the target Scaling Group",
+                params = {
+                        @RestParam(name = "id", value = "$parent")
+                }
+        )
+})
+public class GetNodesScalingGroupConfigurationCommand extends GetScalingGroupConfigurationCommand {
 
     @Override
     public void execute(AdminCommandContext adminCommandContext) {
@@ -83,36 +88,30 @@ public class SetNodesScalingGroupCommand extends SetScalingGroupConfigurationCom
             return;
         }
 
-        try {
-            ConfigSupport.apply(scalingGroupsProxy -> {
-                ConfigSupport.apply(nodesScalingGroupProxy -> {
-                    if (StringUtils.ok(deploymentGroupRef)) {
-                        nodesScalingGroupProxy.setDeploymentGroupRef(deploymentGroupRef);
-                    }
+        NodesScalingGroup nodesScalingGroup = null;
 
-                    if (StringUtils.ok(configRef)) {
-                        nodesScalingGroupProxy.setConfigRef(configRef);
-                    }
-
-                    if (nodeRefs != null && !nodeRefs.isEmpty()) {
-                        nodesScalingGroupProxy.getNodeRefs().clear();
-                        for (String nodeRef : nodeRefs) {
-                            // Ensure no duplicates
-                            if (!nodesScalingGroupProxy.getNodeRefs().contains(nodeRef)) {
-                                nodesScalingGroupProxy.getNodeRefs().add(nodeRef);
-                            }
-                        }
-                    }
-
-                    return nodesScalingGroupProxy;
-                }, (NodesScalingGroup) scalingGroupsProxy.getScalingGroup(name));
-
-                return scalingGroupsProxy;
-            }, scalingGroups);
-        } catch (TransactionFailure transactionFailure) {
-            adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.FAILURE);
-            adminCommandContext.getActionReport().setFailureCause(transactionFailure);
+        // Search through the scaling groups, checking for the one with a reference to our requested deployment group
+        for (NodesScalingGroup nodesScalingGroupIterator : scalingGroups.getScalingGroupsOfType(NodesScalingGroup.class)) {
+            if (nodesScalingGroupIterator.getName().equals(name)) {
+                nodesScalingGroup = nodesScalingGroupIterator;
+                break;
+            }
         }
+
+        adminCommandContext.getActionReport().setMessage("Nodes Scaling Group: " + nodesScalingGroup.getName());
+        adminCommandContext.getActionReport().appendMessage("\nConfig Ref: " + nodesScalingGroup.getConfigRef());
+        adminCommandContext.getActionReport().appendMessage("\nDeployment Group Ref: " + nodesScalingGroup.getDeploymentGroupRef());
+        adminCommandContext.getActionReport().appendMessage("\nNode Refs: " + String.join(", ", nodesScalingGroup.getNodeRefs()));
+
+        Properties extraProps = new Properties();
+        Map<String, Object> configMap = new HashMap<>();
+        configMap.put("name", nodesScalingGroup.getName());
+        configMap.put("configRef", nodesScalingGroup.getConfigRef());
+        configMap.put("deploymentGroupRef", nodesScalingGroup.getDeploymentGroupRef());
+        configMap.put("nodeRefs", nodesScalingGroup.getNodeRefs());
+
+        extraProps.put("scalingGroupConfig", configMap);
+        adminCommandContext.getActionReport().setExtraProperties(extraProps);
     }
 
     @Override
@@ -135,21 +134,6 @@ public class SetNodesScalingGroupCommand extends SetScalingGroupConfigurationCom
 
         if (!exists) {
             throw new CommandValidationException("Scaling Group " + name + " is not a Nodes Scaling Group.");
-        }
-
-        if (nodeRefs != null && !nodeRefs.isEmpty()) {
-            for (String nodeRef : nodeRefs) {
-                if (!StringUtils.ok(nodeRef) || nodes.getNode(nodeRef) == null) {
-                    throw new CommandValidationException("Node name " + nodeRef + " is not valid or doesn't exist");
-                }
-
-                if (!nodeRef.equals(nodes.getDefaultLocalNode().getName())) {
-                    String nodeType = nodes.getNode(nodeRef).getType();
-                    if (nodeType.equals("CONFIG") || nodeType.equals("TEMP")) {
-                        throw new CommandValidationException("Node " + nodeRef + " is not a valid type: " + nodeType);
-                    }
-                }
-            }
         }
     }
 }

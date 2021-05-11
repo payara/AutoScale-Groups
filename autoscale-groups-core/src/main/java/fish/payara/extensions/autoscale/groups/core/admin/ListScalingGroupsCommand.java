@@ -40,76 +40,66 @@
 
 package fish.payara.extensions.autoscale.groups.core.admin;
 
-import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
-import fish.payara.extensions.autoscale.groups.Scaler;
 import fish.payara.extensions.autoscale.groups.ScalingGroup;
 import fish.payara.extensions.autoscale.groups.ScalingGroups;
 import org.glassfish.api.ActionReport;
+import org.glassfish.api.admin.AdminCommand;
 import org.glassfish.api.admin.AdminCommandContext;
-import org.glassfish.api.admin.CommandValidationException;
+import org.glassfish.api.admin.CommandLock;
 import org.glassfish.api.admin.ExecuteOn;
 import org.glassfish.api.admin.RestEndpoint;
 import org.glassfish.api.admin.RestEndpoints;
-import org.glassfish.api.admin.RestParam;
 import org.glassfish.api.admin.RuntimeType;
 import org.glassfish.hk2.api.PerLookup;
 import org.jvnet.hk2.annotations.Service;
 
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
- * Asadmin Command for scaling down the number of instances within a {@link DeploymentGroup Deployment Group} using its
- * configured {@link ScalingGroup Scaling Group}.
- *
- * Instead of looking up the target {@link DeploymentGroup Deployment Group} directly and then using that to grab the
- * {@link ScalingGroup Scaling Group} config, we search through the {@link ScalingGroups Scaling Groups} for a
- * {@link ScalingGroup Scaling Group} that is linked to the target {@link DeploymentGroup Deployment Group}. This is
- * done since the {@link DeploymentGroup Deployment Group} doesn't hold a reference to the
- * {@link ScalingGroup Scaling Group} so as to allow the Core Server to not depend on the AutoScale Groups plugin.
  *
  * @author Andrew Pielage
  */
-@Service(name = "scale-down")
+@Service(name = "list-scaling-groups")
 @PerLookup
 @ExecuteOn(RuntimeType.DAS)
+@CommandLock(CommandLock.LockType.NONE)
 @RestEndpoints({
-        @RestEndpoint(configBean = DeploymentGroup.class,
-                opType = RestEndpoint.OpType.POST,
-                path = "scale-down",
-                description = "Scales down a Deployment Group",
-                params = {
-                        @RestParam(name = "id", value = "$parent")
-                }
-        )
+        @RestEndpoint(configBean = ScalingGroups.class,
+                opType = RestEndpoint.OpType.GET,
+                path = "list-scaling-groups",
+                description = "Lists configured AutoScale Groups")
 })
-public class ScaleDownCommand extends ScaleCommand {
+public class ListScalingGroupsCommand implements AdminCommand {
+
+    @Inject
+    private ScalingGroups scalingGroups;
 
     @Override
     public void execute(AdminCommandContext adminCommandContext) {
-        try {
-            validateParams();
-        } catch (CommandValidationException commandValidationException) {
-            adminCommandContext.getActionReport().setFailureCause(commandValidationException);
-            adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.FAILURE);
+        if (scalingGroups == null) {
+            adminCommandContext.getActionReport().setMessage("No scaling groups found");
             return;
         }
 
+        ActionReport actionReport = adminCommandContext.getActionReport();
+        Properties extraProperties = new Properties();
+        List<Map<String, String>> scalingGroupsInfo = new ArrayList<>();
         for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-            if (scalingGroup.getDeploymentGroupRef().equals(target)) {
-                // Get the Scaler implementation service for this scaling group type
-                List<Scaler> scalerServices = serviceLocator.getAllServices(Scaler.class);
-                for (Scaler scalerService : scalerServices) {
-                    // Since we're working with a ConfigBeanProxy we can't simply do getClass() since this would return
-                    // the proxy class. Instead, we can grab the interfaces of this proxy to what's actually being
-                    // proxied. In this case, each ConfigBeanProxy *should* only only have a single interface: the
-                    // scaling group config bean interface that we're trying to compare (e.g. NodesScalingGroup)
-                    if (scalerService.getScalingGroupClass().equals(scalingGroup.getClass().getInterfaces()[0])) {
-                        scalerService.scaleDown(quantity, scalingGroup);
-                        break;
-                    }
-                }
-                break;
-            }
+            Map<String, String> scalingGroupInfo = new HashMap<>();
+            scalingGroupInfo.put("name", scalingGroup.getName());
+            scalingGroupInfo.put("configRef", scalingGroup.getConfigRef());
+            scalingGroupInfo.put("deploymentGroupRef", scalingGroup.getDeploymentGroupRef());
+            scalingGroupsInfo.add(scalingGroupInfo);
+
+            actionReport.appendMessage(scalingGroup.getName() + "\n");
         }
+
+        extraProperties.put("scalingGroups", scalingGroupsInfo);
+        actionReport.setExtraProperties(extraProperties);
     }
 }

@@ -80,6 +80,7 @@
         <module>autoscale-groups-api</module>
         <module>autoscale-groups-nodes-plugin</module>
         <module>autoscale-groups-core</module>
+        <module>autoscale-groups-console</module>
     </modules>
 
     <pluginRepositories>

@@ -41,6 +41,7 @@
 package fish.payara.extensions.autoscale.groups.core.admin;
 
 import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
+import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
 import fish.payara.extensions.autoscale.groups.Scaler;
 import fish.payara.extensions.autoscale.groups.ScalingGroup;
 import fish.payara.extensions.autoscale.groups.ScalingGroups;
@@ -49,6 +50,9 @@ import org.glassfish.api.admin.AdminCommandContext;
 import org.glassfish.api.admin.CommandLock;
 import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.api.admin.ExecuteOn;
+import org.glassfish.api.admin.RestEndpoint;
+import org.glassfish.api.admin.RestEndpoints;
+import org.glassfish.api.admin.RestParam;
 import org.glassfish.api.admin.RuntimeType;
 import org.glassfish.hk2.api.PerLookup;
 import org.jvnet.hk2.annotations.Service;
@@ -71,6 +75,16 @@ import java.util.List;
 @PerLookup
 @CommandLock(CommandLock.LockType.NONE) // Defer locking to any chained commands
 @ExecuteOn(RuntimeType.DAS)
+@RestEndpoints({
+        @RestEndpoint(configBean = DeploymentGroup.class,
+                opType = RestEndpoint.OpType.POST,
+                path = "scale-up",
+                description = "Scales up a Deployment Group",
+                params = {
+                        @RestParam(name = "id", value = "$parent")
+                }
+        )
+})
 public class ScaleUpCommand extends ScaleCommand {
 
     @Override

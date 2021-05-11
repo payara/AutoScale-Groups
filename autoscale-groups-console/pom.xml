@@ -48,15 +48,16 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>fish.payara.extensions.autoscale.groups.nodes</groupId>
-    <artifactId>autoscale-groups-nodes-plugin</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>autoscale-groups-console</artifactId>
+    <name>Payara AutoScale Groups Console</name>
+    <packaging>glassfish-jar</packaging>
+    <description>Module containing the core Admin Console classes and pages for Payara AutoScale Groups Extensions</description>
 
-    <name>Payara AutoScale Groups: Nodes</name>
-
-    <modules>
-        <module>autoscale-groups-nodes-plugin-core</module>
-        <module>autoscale-groups-nodes-plugin-console</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>fish.payara.server.internal.admingui</groupId>
+            <artifactId>console-plugin-service</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

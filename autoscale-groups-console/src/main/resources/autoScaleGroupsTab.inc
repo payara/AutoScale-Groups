@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
@@ -38,25 +37,9 @@
   only if the new code is made subject to such option by the copyright
   holder.
  -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <groupId>fish.payara.extensions.autoscale.groups</groupId>
-        <artifactId>autoscale-groups-parent</artifactId>
-        <version>1.0-SNAPSHOT</version>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>fish.payara.extensions.autoscale.groups.nodes</groupId>
-    <artifactId>autoscale-groups-nodes-plugin</artifactId>
-    <packaging>pom</packaging>
-
-    <name>Payara AutoScale Groups: Nodes</name>
-
-    <modules>
-        <module>autoscale-groups-nodes-plugin-core</module>
-        <module>autoscale-groups-nodes-plugin-console</module>
-    </modules>
-
-</project>
+<sun:tab id="autoScaleGroupsTab" immediate="$boolean{true}" text="AutoScale Groups">
+    <!command
+        setSessionAttribute(key="dgTabs" value="autoScaleGroupsTab");
+        gf.redirect(page="#{request.contextPath}/autoScaleGroups/autoScaleGroups.jsf?dgName=#{encodedDGName}");
+    />
+</sun:tab>
