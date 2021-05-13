@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
@@ -38,14 +37,10 @@
   only if the new code is made subject to such option by the copyright
   holder.
  -->
-<console-config id="autoScaleGroups">
-            
-    <integration-point
-        id="autoScaleGroupsTab"
-        type="org.glassfish.admingui:dgTab"
-        priority="300"
-        parentId="dgTabs"
-        content="selectAutoScaleGroupTab.inc"
+<sun:tab id="autoScaleGroupsTab" immediate="$boolean{true}" text="AutoScale Groups">
+    <!command
+        setSessionAttribute(key="dgTabs" value="autoScaleGroupsTab");
+        gf.redirect(page="#{request.contextPath}/autoScaleGroups/autoScaleGroups.jsf?dgName=#{encodedDGName}");
     />
+</sun:tab>
 
-</console-config>

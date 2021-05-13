@@ -143,6 +143,8 @@ public class NodesScaler extends Scaler {
                 throw new CommandValidationException("Node " + nodeRef + " does not appear to exist!");
             }
         }
+
+
     }
 
     @Override

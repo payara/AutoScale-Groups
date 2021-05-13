@@ -38,14 +38,14 @@
   only if the new code is made subject to such option by the copyright
   holder.
  -->
-<console-config id="autoScaleGroups">
+<console-config id="nodesScaleGroups">
             
     <integration-point
-        id="autoScaleGroupsTab"
-        type="org.glassfish.admingui:dgTab"
-        priority="300"
-        parentId="dgTabs"
-        content="selectAutoScaleGroupTab.inc"
+        id="nodesScaleGroupsTab"
+        type="fish.payara.admingui.extensions:autoScaleGroupsTab"
+        priority="350"
+        parentId="autoScaleGroupsTabs"
+        content="nodesScaleGroupsTab.inc"
     />
 
 </console-config>

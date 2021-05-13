@@ -42,6 +42,7 @@
         <event>
             <!beforeCreate
                 setSessionAttribute(key="dgTabs" value="autoScaleGroupsTab");
+                setSessionAttribute(key="autoScaleGroupsTabs" value="selectAutoScaleGroupTab");
                 getRequestValue(key="dgName" value="#{pageSession.dgName}");
                 urlencode(value="#{pageSession.dgName}" encoding="UTF-8" result="#{pageSession.encodedDGName}");
                 setPageSessionAttribute(key="selfPage",
@@ -72,6 +73,7 @@
         <sun:form id="propertyForm">
 
 #include "/cluster/dg/dgTabs.inc"
+#include "/autoScaleGroups/autoScaleGroupsTabs.inc"
 #include "/common/shared/alertMsg_1.inc"
 
             <!-- Page Title -->

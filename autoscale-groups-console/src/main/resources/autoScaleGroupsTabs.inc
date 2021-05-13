@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
@@ -38,14 +37,17 @@
   only if the new code is made subject to such option by the copyright
   holder.
  -->
-<console-config id="autoScaleGroups">
-            
-    <integration-point
-        id="autoScaleGroupsTab"
-        type="org.glassfish.admingui:dgTab"
-        priority="300"
-        parentId="dgTabs"
-        content="selectAutoScaleGroupTab.inc"
+<sun:tabSet id="autoScaleGroupsTabs" immediate="$boolean{true}" selected="#{sessionScope.autoScaleGroupsTabs}">
+    <sun:tab id="selectAutoScaleGroupTab" immediate="$boolean{true}" text="Active AutoScale Group">
+        <!command
+            setSessionAttribute(key="autoScaleGroupsTabs" value="selectAutoScaleGroupTab");
+            gf.redirect(page="#{request.contextPath}/autoScaleGroups/autoScaleGroups.jsf?dgName=#{encodedDGName}");
+        />
+    </sun:tab>
+</sun:tabSet>
+<event>
+    <!afterCreate
+        includeIntegrations(type="fish.payara.admingui.extensions:autoScaleGroupsTab");
     />
+</event>
 
-</console-config>
