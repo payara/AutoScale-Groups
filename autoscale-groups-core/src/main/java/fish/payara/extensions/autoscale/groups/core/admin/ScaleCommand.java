@@ -91,6 +91,10 @@ public abstract class ScaleCommand implements AdminCommand {
             throw new CommandValidationException("Target must be a valid Deployment Group!");
         }
 
+        if (deploymentGroups.getDeploymentGroup(target) == null) {
+            throw new CommandValidationException(("Deployment Group does not exist!"));
+        }
+
         if (quantity < 1) {
             throw new CommandValidationException("Quantity must be greater than 0!");
         }
