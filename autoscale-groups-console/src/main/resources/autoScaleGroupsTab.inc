@@ -37,9 +37,18 @@
   only if the new code is made subject to such option by the copyright
   holder.
  -->
-<sun:tab id="autoScaleGroupsTab" immediate="$boolean{true}" text="AutoScale Groups">
+<sun:tab id="autoScaleGroupsTab" immediate="$boolean{true}" text="AutoScale Group">
     <!command
         setSessionAttribute(key="dgTabs" value="autoScaleGroupsTab");
         gf.redirect(page="#{request.contextPath}/autoScaleGroups/autoScaleGroups.jsf?dgName=#{encodedDGName}");
+    />
+    <sun:tab id="dgAutoScaleGroupTab" immediate="$boolean{true}" text="Active AutoScale Group">
+        <!command
+            setSessionAttribute(key="dgTabs" value="autoScaleGroupsTab");
+            gf.redirect(page="#{request.contextPath}/autoScaleGroups/autoScaleGroups.jsf?dgName=#{encodedDGName}");
+        />
+    </sun:tab>
+    <!afterCreate
+        includeIntegrations(type="fish.payara.admingui.extensions:autoScaleGroupsTab");
     />
 </sun:tab>

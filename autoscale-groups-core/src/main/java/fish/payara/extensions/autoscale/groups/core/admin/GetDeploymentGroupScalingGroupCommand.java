@@ -106,7 +106,7 @@ public class GetDeploymentGroupScalingGroupCommand extends ScalingGroupCommand {
         adminCommandContext.getActionReport().setMessage("Scaling Group: " + scalingGroup.getName());
 
         Properties extraProps = new Properties();
-        extraProps.put("scalingGroup", scalingGroup.getName());
+        extraProps.put("scalingGroupName", scalingGroup.getName());
         adminCommandContext.getActionReport().setExtraProperties(extraProps);
     }
 

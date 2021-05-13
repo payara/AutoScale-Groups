@@ -42,6 +42,7 @@ package fish.payara.extensions.autoscale.groups;
 import com.sun.enterprise.config.serverbeans.Nodes;
 import com.sun.enterprise.util.StringUtils;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
+import org.glassfish.api.ActionReport;
 import org.glassfish.api.admin.CommandRunner;
 import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.hk2.api.ServiceLocator;
@@ -73,22 +74,24 @@ public abstract class Scaler {
      * Scale up the number of instances in the given Deployment Group by the specified amount.
      *
      * @param numberOfNewInstances The number of instances to scale the Deployment Group up in size by.
-     * @param scalingGroup The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
-     *                     the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
-     *                     scale, which {@link com.sun.enterprise.config.serverbeans.Config Instance Config} to use, as
-     *                     well as any additional implementation specific information.
+     * @param scalingGroup         The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
+     *                             the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
+     *                             scale, which {@link com.sun.enterprise.config.serverbeans.Config Instance Config} to use, as
+     *                             well as any additional implementation specific information.
+     * @return An {@link ActionReport} detailing the outcome of the operation
      */
-    public abstract void scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup);
+    public abstract ActionReport scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup);
 
     /**
      * Scale down the number of instances in the given Deployment Group by the specified amount.
      *
      * @param numberOfInstancesToRemove The number of instances to scale the Deployment Group down in size by.
-     * @param scalingGroup The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
-     *                     the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
-     *                     scale, as well as any additional implementation specific information.
+     * @param scalingGroup              The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
+     *                                  the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
+     *                                  scale, as well as any additional implementation specific information.
+     * @return An {@link ActionReport} detailing the outcome of the operation
      */
-    public abstract void scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup);
+    public abstract ActionReport scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup);
 
     public Class<? extends ScalingGroup> getScalingGroupClass() {
         return getClass().getAnnotation(Scales.class).value();

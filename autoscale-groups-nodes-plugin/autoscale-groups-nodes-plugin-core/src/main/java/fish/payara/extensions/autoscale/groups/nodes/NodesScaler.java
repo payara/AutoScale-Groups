@@ -146,12 +146,15 @@ public class NodesScaler extends Scaler {
     }
 
     @Override
-    public void scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup) {
+    public ActionReport scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup) {
+        ActionReport actionReport = commandRunner.getActionReport("plain");
         try {
             validate(numberOfNewInstances, scalingGroup);
         } catch (CommandValidationException commandValidationException) {
-            LOGGER.severe("Cancelling scale up operation, an error was encountered during validation");
-            return;
+            actionReport.setMessage("Scale up operation cancelled: an error was encountered during validation");
+            actionReport.setFailureCause(commandValidationException);
+            actionReport.setActionExitCode(ActionReport.ExitCode.FAILURE);
+            return actionReport;
         }
 
         try {
@@ -160,6 +163,8 @@ public class NodesScaler extends Scaler {
         } catch (CommandException commandException) {
             LOGGER.severe(commandException.getMessage());
         }
+
+        return actionReport;
     }
 
     private List<String> createInstances(int numberOfNewInstances, ScalingGroup scalingGroup) throws CommandException {
@@ -223,12 +228,15 @@ public class NodesScaler extends Scaler {
     }
 
     @Override
-    public void scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup) {
+    public ActionReport scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup) {
+        ActionReport actionReport = commandRunner.getActionReport("plain");
         try {
             validate(numberOfInstancesToRemove, scalingGroup);
         } catch (CommandValidationException commandValidationException) {
-            LOGGER.severe("Cancelling scale down operation, an error was encountered during validation");
-            return;
+            actionReport.setMessage("Scale down operation cancelled: an error was encountered during validation");
+            actionReport.setFailureCause(commandValidationException);
+            actionReport.setActionExitCode(ActionReport.ExitCode.FAILURE);
+            return actionReport;
         }
 
         try {
@@ -238,6 +246,8 @@ public class NodesScaler extends Scaler {
         } catch (CommandException commandException) {
             LOGGER.severe(commandException.getMessage());
         }
+
+        return actionReport;
     }
 
     private List<String> determineInstancesToStop(int numberOfInstancesToRemove, ScalingGroup scalingGroup)

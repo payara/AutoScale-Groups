@@ -58,6 +58,18 @@
             <groupId>fish.payara.server.internal.admingui</groupId>
             <artifactId>console-plugin-service</artifactId>
         </dependency>
+        <dependency>
+            <groupId>fish.payara.server.internal.admingui</groupId>
+            <artifactId>console-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.jsftemplating</groupId>
+            <artifactId>jsftemplating</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.jsftemplating</groupId>
+            <artifactId>jsftemplating-dt</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

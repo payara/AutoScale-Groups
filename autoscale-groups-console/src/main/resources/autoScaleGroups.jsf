@@ -37,46 +37,78 @@
     only if the new code is made subject to such option by the copyright
     holder.
 -->
-<!composition template="/templates/default.layout"  guiTitle="$resource{i18ncs.dg.GeneralTitle}">
-<!define name="content">
-    <event>
-        <!beforeCreate
-            setSessionAttribute(key="dgTabs" value="autoScaleGroups");
-            getRequestValue(key="dgName" value="#{pageSession.dgName}");
-            urlencode(value="#{pageSession.dgName}" encoding="UTF-8" result="#{pageSession.encodedDGName}");
-            setPageSessionAttribute(key="selfPage" value="#{request.contextPath}/autoScaleGroups/autoScaleGroups.jsf?dgName=#{pageSession.encodedDGName}");
-            setPageSessionAttribute(key="parentPage" value="#{request.contextPath}/cluster/dg/dgs.jsf");
-            setPageSessionAttribute(key="parentUrl", value="#{sessionScope.REST_URL}/deployment-groups");
-            py.getAutoScaleGroupConfiguration(endpoint="#{sessionScope.REST_URL}/deployment-groups/#{pageSession.encodedDGName}/get-deployment-group-scaling-group" method="GET" value="#{pageSession.dgScalingGroup}");
-    />
-    </event>
-    <sun:form id="propertyForm">
-        <!afterCreate
+<!composition template="/templates/default.layout"  guiTitle="AutoScale Group">
+    <!define name="content">
+        <event>
+            <!beforeCreate
+                setSessionAttribute(key="dgTabs" value="autoScaleGroupsTab");
+                getRequestValue(key="dgName" value="#{pageSession.dgName}");
+                urlencode(value="#{pageSession.dgName}" encoding="UTF-8" result="#{pageSession.encodedDGName}");
+                setPageSessionAttribute(key="selfPage",
+                        value="#{request.contextPath}/autoScaleGroups/autoScaleGroups.jsf?dgName=#{pageSession.encodedDGName}");
+                setPageSessionAttribute(key="parentPage",
+                        value="#{request.contextPath}/cluster/dg/dgs.jsf");
+                setPageSessionAttribute(key="parentUrl", value="#{sessionScope.REST_URL}/deployment-groups");
 
-        getClientId(component="$this{component}" clientId=>$attribute{sheetId});
-        />
+                gf.restRequest(
+                        endpoint="#{sessionScope.REST_URL}/deployment-groups/deployment-group/#{pageSession.encodedDGName}/get-deployment-group-scaling-group",
+                        method="GET", result="#{pageSession.dgScalingGroup}");
 
-        #include "/cluster/dg/dgTabs.inc"
-        #include "/common/shared/alertMsg_1.inc"
+                createMap(result="#{pageSession.valueMap}");
 
-        <!-- Page Title -->
-        <sun:title id="propertyContentPage" title="AutoScale Groups" helpText="$resource{i18ncs.dg.GeneralTitleHelp}">
-            <!facet pageButtonsTop>
-            <sun:panelGroup id="topButtons">
-                <sun:button id="saveButton" rendered="#{edit}" text="$resource{i18n.button.Save}"
-                            onClick="if (guiValidate('#{reqMsg}','#{reqInt}','#{reqPort}')) {submitAndDisable(this, '$resource{i18n.button.Processing}');}; return false;" >
-                    <!command
-                    gf.isDGName(dgName="#{pageSession.clusterName}" );
-                    gf.updateEntity(endpoint="#{pageSession.resourceUrl}" attrs="#{pageSession.valueMap}"  convertToFalse="#{pageSession.convertToFalseList}");
-                    prepareSuccessfulMsg();
-                    gf.redirect(page="#{pageSession.selfPage}&alertType=${alertType}&alertSummary=${alertSummary}&alertDetail=${alertDetail}");
-                    />
-                </sun:button>
-                <sun:button id="cancelButton" immediate="#{true}" primary="#{false}" rendered="#{pageSession.showCancelButton}" text="$resource{i18n.button.Cancel}" >
-                    <!command
-                    gf.redirect(page="#{pageSession.parentPage}");
-                    />
-                </sun:button>
-            </sun:panelGroup>
-            </facet>
-        </sun:title>
+                if("!(#{pageSession.dgScalingGroup.data.extraProperties.scalingGroupName}=#{null})"){
+                    mapPut(map="#{pageSession.valueMap}", key="dgScalingGroup",
+                            value="#{pageSession.dgScalingGroup.data.extraProperties.scalingGroupName}");
+                }
+                if("#{pageSession.dgScalingGroup.data.extraProperties.scalingGroupName}=#{null}"){
+                    mapPut(map="#{pageSession.valueMap}", key="dgScalingGroup", value="");
+                }
+
+                py.getScalingGroupConfig(endpoint="#{sessionScope.REST_URL}/scaling-groups",
+                        scalingGroupName="#{pageSession.valueMap['dgScalingGroup']}",
+                        result="#{pageSession.scalingGroupConfig}");
+            />
+        </event>
+        <sun:form id="propertyForm">
+
+#include "/cluster/dg/dgTabs.inc"
+#include "/common/shared/alertMsg_1.inc"
+
+            <!-- Page Title -->
+            <sun:title id="propertyContentPage" title="AutoScale Group"
+                       helpText="Set, Configure, or Create an AutoScale Group for this Deployment Group">
+                <!facet pageButtonsTop>
+                    <sun:panelGroup id="topButtons">
+                        <sun:button id="saveButton"  text="$resource{i18n.button.Save}"
+                                    onClick="if (guiValidate('#{reqMsg}','#{reqInt}','#{reqPort}'))
+                                    submitAndDisable(this, '$resource{i18n.button.Processing}'); return false;" >
+                        <!command
+                            py.setDeploymentGroupScalingGroup(endpoint="#{sessionScope.REST_URL}/scaling-groups",
+                                    deploymentGroupName="#{pageSession.encodedDGName}",
+                                    scalingGroupName="#{pageSession.valueMap['dgScalingGroup']}");
+                            prepareSuccessfulMsg();
+                            gf.redirect(page="#{pageSession.selfPage}&alertType=${alertType}&alertSummary=${alertSummary}&alertDetail=${alertDetail}");
+                        />
+                    </sun:button>
+                </sun:panelGroup>
+                </facet>
+            </sun:title>
+
+            <sun:propertySheet id="scalingGroupNameSheet">
+                <!-- Text Field section -->
+                <sun:propertySheetSection id="propertSectionTextField">
+                    <sun:property id="dgScalingGroupProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
+                                  label="Scaling Group"  helpText="Scaling Group configured for this Deployment Group. Create, delete, or configure a Scaling Group from one of the AutoScale Group tabs above.">
+                        <sun:dropDown id="dgScalingGroupNameDrop" selected="#{pageSession.valueMap['dgScalingGroup']}"
+                                      labels="$pageSession{scalingGroupsList}"  values="$pageSession{scalingGroupsList}" >
+                            <!beforeCreate
+                                py.getScalingGroupsList(endpoint="#{sessionScope.REST_URL}/scaling-groups",
+                                        result="#{pageSession.scalingGroupsList}");
+                            />
+                        </sun:dropDown>
+                    </sun:property>
+                </sun:propertySheetSection>
+            </sun:propertySheet>
+        </sun:form>
+    </define>
+</composition>

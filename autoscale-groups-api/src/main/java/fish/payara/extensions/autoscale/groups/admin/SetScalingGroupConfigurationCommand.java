@@ -79,7 +79,7 @@ public abstract class SetScalingGroupConfigurationCommand extends ScalingGroupCo
 
         if (StringUtils.ok(deploymentGroupRef)) {
             if (deploymentGroups.getDeploymentGroup(deploymentGroupRef) == null) {
-                throw new CommandValidationException("Deployment Group " + deploymentGroupRef + "does not exist");
+                throw new CommandValidationException("Deployment Group " + deploymentGroupRef + " does not exist");
             }
 
             // Search through the scaling groups, checking for any duplicates of the deployment group ref

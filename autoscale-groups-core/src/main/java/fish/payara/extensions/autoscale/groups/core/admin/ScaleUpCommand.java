@@ -107,7 +107,7 @@ public class ScaleUpCommand extends ScaleCommand {
                     // proxied. In this case, each ConfigBeanProxy *should* only only have a single interface: the
                     // scaling group config bean interface that we're trying to compare (e.g. NodesScalingGroup)
                     if (scalerService.getScalingGroupClass().equals(scalingGroup.getClass().getInterfaces()[0])) {
-                        scalerService.scaleUp(quantity, scalingGroup);
+                        adminCommandContext.setActionReport(scalerService.scaleUp(quantity, scalingGroup));
                         break;
                     }
                 }

@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.admingui.notifier.discord;
+package fish.payara.extensions.autoscale.groups.admingui;
 
 import java.net.URL;
 import org.glassfish.api.admingui.ConsoleProvider;

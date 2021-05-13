@@ -40,6 +40,7 @@
 
 package fish.payara.extensions.autoscale.groups.core.admin;
 
+import com.sun.enterprise.util.ColumnFormatter;
 import fish.payara.extensions.autoscale.groups.ScalingGroup;
 import fish.payara.extensions.autoscale.groups.ScalingGroups;
 import org.glassfish.api.ActionReport;
@@ -86,20 +87,27 @@ public class ListScalingGroupsCommand implements AdminCommand {
             return;
         }
 
-        ActionReport actionReport = adminCommandContext.getActionReport();
-        Properties extraProperties = new Properties();
+        ColumnFormatter columnFormatter = new ColumnFormatter(new String[]{"Name", "Config Ref", "Deployment Group"});
         List<Map<String, String>> scalingGroupsInfo = new ArrayList<>();
         for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-            Map<String, String> scalingGroupInfo = new HashMap<>();
-            scalingGroupInfo.put("name", scalingGroup.getName());
-            scalingGroupInfo.put("configRef", scalingGroup.getConfigRef());
-            scalingGroupInfo.put("deploymentGroupRef", scalingGroup.getDeploymentGroupRef());
-            scalingGroupsInfo.add(scalingGroupInfo);
+            String[] outputValues = {
+                    scalingGroup.getName(),
+                    scalingGroup.getConfigRef(),
+                    scalingGroup.getDeploymentGroupRef()
+            };
+            columnFormatter.addRow(outputValues);
 
-            actionReport.appendMessage(scalingGroup.getName() + "\n");
+            Map<String, String> scalingGroupInfo = new HashMap<>();
+            scalingGroupInfo.put("name", outputValues[0]);
+            scalingGroupInfo.put("configRef", outputValues[1]);
+            scalingGroupInfo.put("deploymentGroupRef", outputValues[2]);
+            scalingGroupsInfo.add(scalingGroupInfo);
         }
 
+        adminCommandContext.getActionReport().setMessage(columnFormatter.toString());
+
+        Properties extraProperties = new Properties();
         extraProperties.put("scalingGroups", scalingGroupsInfo);
-        actionReport.setExtraProperties(extraProperties);
+        adminCommandContext.getActionReport().setExtraProperties(extraProperties);
     }
 }
