@@ -125,7 +125,7 @@ public class AutoScaleGroupsHandlers {
 
             // Add empty string to return list so that the dropdown has a default
             List<String> scalingGroupNames = new ArrayList<>();
-            scalingGroupNames.add("");
+//            scalingGroupNames.add("");
 
             // For each type, get the config of each scaling groups and add them to a List
             for (Map.Entry<String, String> scalingGroupType : scalingGroupTypesMap.entrySet()) {

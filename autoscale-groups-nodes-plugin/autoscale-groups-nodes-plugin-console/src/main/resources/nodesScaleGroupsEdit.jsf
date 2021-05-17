@@ -51,8 +51,20 @@
                 gf.restRequest(endpoint="#{sessionScope.REST_URL}/scaling-groups/nodes-scaling-group/#{pageSession.encodedScalingGroupName}/get-nodes-scaling-group-configuration"  method="GET" result="#{pageSession.scalingGroupConfig}");
                 setPageSessionAttribute(key="valueMap", value="#{pageSession.scalingGroupConfig.data.extraProperties.scalingGroupConfig}");
 
+                gf.getChildrenNamesList(endpoint="#{sessionScope.REST_URL}/configs/config",
+                        result="#{requestScope.tmpList}");
+                listRemove(list="#{requestScope.tmpList}" value="server-config" result="#{pageSession.configRefsList}");
+                listRemove(list="#{requestScope.tmpList}" value="default-config" result="#{pageSession.configRefsList}");
+
+                gf.getChildrenNamesList(endpoint="#{sessionScope.REST_URL}/deployment-groups/deployment-group",
+                        result="#{pageSession.deploymentGroupRefsList}");
 
 
+                py.getNodeNamesList(parentEndpoint="#{sessionScope.REST_URL}/nodes", childType="node",
+                        result="#{pageSession.nodesList}");
+                gf.convertListToOptionArray(list="#{pageSession.nodesList}",
+                        optionArray="#{pageSession.nodesListArray}");
+                convertListToArray(list="#{pageSession.valueMap['nodeRefs']}", array="#{pageSession.selectedNodesListArray}");
             />
         </event>
         <sun:form id="propertyForm">
@@ -80,29 +92,21 @@
             </sun:title>
             <sun:propertySheet id="scalingGroupConfigSheet">
                 <sun:propertySheetSection>
-                    <sun:property id="configRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="$resource{i18nar.asadminRecorder.configuration.filterCommands}"  helpText="$resource{i18nar.asadminRecorder.configuration.filterCommandsHelp}">
+                    <sun:property id="configRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Config:"  helpText="The config new instances creating while scaling will use">
                         <sun:dropDown id="configRefDrop" selected="#{pageSession.valueMap['configRef']}"
                                       labels="$pageSession{configRefsList}"  values="$pageSession{configRefsList}" >
-                            <!beforeCreate
-                                py.getScalingGroupsNamesList(endpoint="#{sessionScope.REST_URL}/scaling-groups",
-                                result="#{pageSession.configRefsList}");
-                            />
                         </sun:dropDown>
                     </sun:property>
-                    <sun:property id="deploymentGroupRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="$resource{i18nar.asadminRecorder.configuration.outputLocation}"  helpText="$resource{i18nar.asadminRecorder.configuration.outputLocationHelp}">
+                    <sun:property id="deploymentGroupRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Deployment Group:"  helpText="The deployment group this scaling group is attached to">
                         <sun:dropDown id="deploymentGroupRefDrop" selected="#{pageSession.valueMap['deploymentGroupRef']}"
                                       labels="$pageSession{deploymentGroupRefsList}"  values="$pageSession{deploymentGroupRefsList}" >
-                            <!beforeCreate
-                                py.getScalingGroupsNamesList(endpoint="#{sessionScope.REST_URL}/scaling-groups",
-                                result="#{pageSession.deploymentGroupRefsList}");
-                            />
                         </sun:dropDown>
                     </sun:property>
                     <sun:property id="nodesProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
-                                  label="Nodes" helpText="The nodes this scaling group can create instances on">
+                                  label="Nodes:" helpText="The nodes this scaling group can create instances on">
                             <sun:addRemove id="instancesAddRemove" selectAll="$boolean{true}"
-                                           items="#{pageSession.allNodes}"
-                                           selected="#{pageSession.selectedNodesArr}"
+                                           items="#{pageSession.nodesListArray}"
+                                           selected="#{pageSession.selectedNodesListArray}"
                                            availableItemsLabel="Available Nodes"
                                            selectedItemsLabel="Selected Nodes">
                                     </sun:addRemove>

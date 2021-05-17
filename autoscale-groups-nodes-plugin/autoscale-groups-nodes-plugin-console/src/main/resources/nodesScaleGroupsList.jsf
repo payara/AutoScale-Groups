@@ -39,6 +39,21 @@
 -->
 
 <!composition template="/templates/default.layout"  guiTitle="Nodes Scaling Groups">
+    <!define name="listTableDeleteButton">
+        <sun:button id="button1" text="$resource{i18n.button.Delete}" disabled="#{true}" primary="#{false}"
+                    onClick="if (getConfirm(this,'Delete nodes scaling group?')) {submitAndDisable(this, '$resource{i18n.button.Processing}');}; return false;" >
+            <!command
+                getUIComponent(clientId="$pageSession{tableRowGroupId}", component=>$attribute{tableRowGroup});
+                getSelectedSingleMapRows(TableRowGroup="${tableRowGroup}" selectedRows=>$attribute{selectedRows});
+                foreach (var="row" list="${selectedRows}") {
+                    createMap(result="#{pageSession.tableValueMap}");
+                    mapPut(map="#{pageSession.tableValueMap}"  key="id" value="#{row['name']}");
+                    gf.restRequest(endpoint="#{sessionScope.REST_URL}/scaling-groups/delete-scaling-group", method="delete", attrs="#{pageSession.tableValueMap}");
+                }
+                gf.redirect(page="#{pageSession.listLink}");
+            />
+        </sun:button>
+    </define>
     <!define name="content">
         <event>
             <!beforeCreate

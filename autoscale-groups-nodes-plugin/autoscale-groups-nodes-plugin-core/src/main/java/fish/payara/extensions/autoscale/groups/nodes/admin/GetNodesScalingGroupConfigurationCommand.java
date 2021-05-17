@@ -40,7 +40,6 @@
 
 package fish.payara.extensions.autoscale.groups.nodes.admin;
 
-import com.sun.enterprise.util.StringUtils;
 import fish.payara.extensions.autoscale.groups.admin.GetScalingGroupConfigurationCommand;
 import fish.payara.extensions.autoscale.groups.nodes.NodesScalingGroup;
 import org.glassfish.api.ActionReport;
