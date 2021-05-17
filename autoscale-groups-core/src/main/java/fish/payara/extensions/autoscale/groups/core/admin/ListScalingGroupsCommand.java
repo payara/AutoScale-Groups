@@ -88,7 +88,7 @@ public class ListScalingGroupsCommand implements AdminCommand {
         }
 
         ColumnFormatter columnFormatter = new ColumnFormatter(new String[]{"Name", "Config Ref", "Deployment Group"});
-        List<Map<String, String>> scalingGroupsInfo = new ArrayList<>();
+        List<Map<String, Object>> scalingGroupsInfo = new ArrayList<>();
         for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
             String[] outputValues = {
                     scalingGroup.getName(),
@@ -97,7 +97,7 @@ public class ListScalingGroupsCommand implements AdminCommand {
             };
             columnFormatter.addRow(outputValues);
 
-            Map<String, String> scalingGroupInfo = new HashMap<>();
+            Map<String, Object> scalingGroupInfo = new HashMap<>();
             scalingGroupInfo.put("name", outputValues[0]);
             scalingGroupInfo.put("configRef", outputValues[1]);
             scalingGroupInfo.put("deploymentGroupRef", outputValues[2]);

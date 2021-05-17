@@ -49,7 +49,11 @@
                         value="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsList.jsf?dgName=#{pageSession.encodedDGName}");
                 setPageSessionAttribute(key="parentPage",
                         value="#{request.contextPath}/cluster/dg/dgs.jsf");
-                setPageSessionAttribute(key="parentUrl", value="#{sessionScope.REST_URL}/deployment-groups");
+
+                setPageSessionAttribute(key="createLink" value="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsNew.jsf");
+                setPageSessionAttribute(key="listLink" value="#{pageSession.selfPage}");
+
+                py.getScalingGroupsList(endpoint="#{sessionScope.REST_URL}/scaling-groups", result="#{pageSession.listOfRows}");
             />
         </event>
         <sun:form id="propertyForm">
@@ -62,6 +66,40 @@
             <sun:title id="propertyContentPage" title="Nodes Scaling Groups"
                        helpText="Create, Configure, or Delete a Nodes AutoScale Group">
             </sun:title>
+
+            <sun:table id="nodesScaleGroupsTable" title="Nodes Scaling Groups" deselectMultipleButton="$boolean{true}"
+                       deselectMultipleButtonOnClick="setTimeout('admingui.table.changeThreeTableButtons(\\\\\'#{pageSession.topActionGroup}\\\\\', \\\\\'#{pageSession.tableId}\\\\\');', 0)"
+                       selectMultipleButton="$boolean{true}"
+                       selectMultipleButtonOnClick="setTimeout('admingui.table.changeThreeTableButtons(\\\\\'#{pageSession.topActionGroup}\\\\\', \\\\\'#{pageSession.tableId}\\\\\');', 0)" >
+                <!afterCreate
+                    getClientId(component="$this{component}" clientId=>$page{tableId});
+                />
+
+#include "/common/shared/listTableButtons.inc"
+
+                <sun:tableRowGroup id="rowGroup1" selected="#{td.value.selected}" data={"$pageSession{listOfRows}"} sourceVar="td">
+                    <!afterCreate
+                        getClientId(component="$this{component}" clientId=>$page{tableRowGroupId});
+                    />
+
+                    <sun:tableColumn headerText="Select" selectId="select"
+                                     rowHeader="$boolean{false}" valign="top"  id="col0">
+                        <sun:checkbox id="select" selected="#{td.value.selected}" selectedValue="$boolean{true}"
+                                      onClick="setTimeout('admingui.table.changeThreeTableButtons(\\\\\'#{pageSession.topActionGroup}\\\\\', \\\\\'#{pageSession.tableId}\\\\\'); admingui.table.initAllRows(\\\\\'#{pageSession.tableId}\\\\\');', 0);"/>
+                    </sun:tableColumn>
+
+                    <sun:tableColumn headerText="Name" rowHeader="$boolean{true}"
+                                     valign="top" id="col1">
+                        <sun:hyperlink id="nameLink" text="#{td.value.name}"
+                                       url="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsEdit.jsf?scalingGroupName=#{td.value.name}" />
+                    </sun:tableColumn>
+
+                    <sun:tableColumn headerText="Deployment Group" rowHeader="$boolean{true}" id="col3">
+                        <sun:hyperlink id="dgLink" text="#{td.value.deploymentGroupRef}"
+                                       url="#{request.contextPath}/cluster/dg/dgGeneral.jsf?dgName=#{td.value.deploymentGroupRef}" />
+                    </sun:tableColumn>
+                </sun:tableRowGroup>
+            </sun:table>
         </sun:form>
     </define>
 </composition>

@@ -111,14 +111,14 @@ public class AutoScaleGroupsHandlers {
         }
     }
 
-    @Handler(id = "py.getScalingGroupsList",
+    @Handler(id = "py.getScalingGroupsNamesList",
             input = {
                     @HandlerInput(name = "endpoint", type = String.class, required = true)
             },
             output = {
                     @HandlerOutput(name = "result", type = List.class)
             })
-    public static void getScalingGroupsList(HandlerContext handlerCtx) {
+    public static void getScalingGroupsNamesList(HandlerContext handlerCtx) {
         try {
             // Get all scaling group types
             Map<String, String> scalingGroupTypesMap = RestUtil.getChildMap((String) handlerCtx.getInputValue("endpoint"));
@@ -127,7 +127,7 @@ public class AutoScaleGroupsHandlers {
             List<String> scalingGroupNames = new ArrayList<>();
             scalingGroupNames.add("");
 
-            // For each type, get all scaling groups and add them to a List
+            // For each type, get the config of each scaling groups and add them to a List
             for (Map.Entry<String, String> scalingGroupType : scalingGroupTypesMap.entrySet()) {
                 Map<String, String> scalingGroupEntities = RestUtil.getChildMap(scalingGroupType.getValue());
                 scalingGroupNames.addAll(scalingGroupEntities.keySet());
@@ -140,7 +140,41 @@ public class AutoScaleGroupsHandlers {
         }
     }
 
+    @Handler(id = "py.getScalingGroupsList",
+            input = {
+                    @HandlerInput(name = "endpoint", type = String.class, required = true)
+            },
+            output = {
+                    @HandlerOutput(name = "result", type = List.class)
+            })
+    public static void getScalingGroupsList(HandlerContext handlerCtx) {
+        try {
+            // Execute the list-scaling-groups command
+            Map<String, Object> responseMap = RestUtil.restRequest(
+                    handlerCtx.getInputValue("endpoint") + "/list-scaling-groups", null, "get", handlerCtx, true);
 
+            // Extract the list of maps from properties
+            List<Map<String, Object>> scalingGroupMaps = new ArrayList<>();
+            Map<String, ?> data = (Map<String, ?>) responseMap.get("data");
+
+            if (data != null) {
+                Map<String, ?> extraProperties = (Map<String, ?>) data.get("extraProperties");
+                if (extraProperties != null) {
+                    scalingGroupMaps = (List<Map<String, Object>>) extraProperties.get("scalingGroups");
+                }
+            }
+
+            // Add "selected" field to each map for use in tables
+            for (Map<String, Object> scalingGroupMap : scalingGroupMaps) {
+                scalingGroupMap.put("selected", false);
+            }
+
+            // Return
+            handlerCtx.setOutputValue("result", scalingGroupMaps);
+        } catch (Exception ex) {
+            GuiUtil.handleException(handlerCtx, ex);
+        }
+    }
 
     @Handler(id = "py.setDeploymentGroupScalingGroup",
             input = {
