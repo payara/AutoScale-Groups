@@ -59,12 +59,11 @@
                 gf.getChildrenNamesList(endpoint="#{sessionScope.REST_URL}/deployment-groups/deployment-group",
                         result="#{pageSession.deploymentGroupRefsList}");
 
-
                 py.getNodeNamesList(parentEndpoint="#{sessionScope.REST_URL}/nodes", childType="node",
                         result="#{pageSession.nodesList}");
                 gf.convertListToOptionArray(list="#{pageSession.nodesList}",
                         optionArray="#{pageSession.nodesListArray}");
-                convertListToArray(list="#{pageSession.valueMap['nodeRefs']}", array="#{pageSession.selectedNodesListArray}");
+                convertListToArray(list="#{pageSession.valueMap['nodes']}", array="#{pageSession.selectedNodesListArray}");
             />
         </event>
         <sun:form id="propertyForm">
@@ -81,7 +80,18 @@
                                     onClick="if (guiValidate('#{reqMsg}','#{reqInt}','#{reqPort}'))
                                     submitAndDisable(this, '$resource{i18n.button.Processing}'); return false;" >
                             <!command
-                                gf.updateEntity(endpoint="#{sessionScope.REST_URL}/scaling-groups/nodes-scaling-group/#{pageSession.encodedScalingGroupName}/set-nodes-scaling-group-configuration",
+                                <!-- Convert selected nodes to list -->
+                                convertArrayToCommaString(array="#{pageSession.selectedNodesListArray}",
+                                        commaString="#{requestScope.selectedNodesListString}");
+                                <!--convertStringtoList(str="#{requestScope.selectedNodesListString}",
+                                        result="#{pageSession.selectedNodesList}");-->
+                                mapPut(map="#{pageSession.valueMap}" key="nodes" value="#{requestScope.selectedNodesListString}");
+
+                                <!-- Remove name from the valueMap to prevent duplicate param warnings (name already specified by REST request URL) -->
+                                mapRemove(map="#{pageSession.valueMap}" key="name");
+
+                                <!-- Execute -->
+                                gf.restRequest(endpoint="#{sessionScope.REST_URL}/scaling-groups/nodes-scaling-group/#{pageSession.encodedScalingGroupName}/set-nodes-scaling-group-configuration",
                                         attrs="#{pageSession.valueMap}");
                                 prepareSuccessfulMsg();
                                 gf.redirect(page="#{pageSession.selfPage}&alertType=${alertType}&alertSummary=${alertSummary}&alertDetail=${alertDetail}");
@@ -93,12 +103,12 @@
             <sun:propertySheet id="scalingGroupConfigSheet">
                 <sun:propertySheetSection>
                     <sun:property id="configRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Config:"  helpText="The config new instances creating while scaling will use">
-                        <sun:dropDown id="configRefDrop" selected="#{pageSession.valueMap['configRef']}"
+                        <sun:dropDown id="configRefDrop" selected="#{pageSession.valueMap['config']}"
                                       labels="$pageSession{configRefsList}"  values="$pageSession{configRefsList}" >
                         </sun:dropDown>
                     </sun:property>
                     <sun:property id="deploymentGroupRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Deployment Group:"  helpText="The deployment group this scaling group is attached to">
-                        <sun:dropDown id="deploymentGroupRefDrop" selected="#{pageSession.valueMap['deploymentGroupRef']}"
+                        <sun:dropDown id="deploymentGroupRefDrop" selected="#{pageSession.valueMap['deploymentGroup']}"
                                       labels="$pageSession{deploymentGroupRefsList}"  values="$pageSession{deploymentGroupRefsList}" >
                         </sun:dropDown>
                     </sun:property>

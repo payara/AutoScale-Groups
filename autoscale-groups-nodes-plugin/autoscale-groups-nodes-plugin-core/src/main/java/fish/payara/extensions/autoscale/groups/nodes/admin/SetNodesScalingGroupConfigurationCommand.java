@@ -74,7 +74,7 @@ import java.util.List;
                 path = "set-nodes-scaling-group-configuration",
                 description = "Sets the configuration of the target Scaling Group",
                 params = {
-                        @RestParam(name = "id", value = "$parent")
+                        @RestParam(name = "name", value = "$parent")
                 }
         )
 })

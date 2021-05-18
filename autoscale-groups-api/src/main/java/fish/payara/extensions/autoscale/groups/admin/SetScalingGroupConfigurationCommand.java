@@ -84,7 +84,7 @@ public abstract class SetScalingGroupConfigurationCommand extends ScalingGroupCo
 
             // Search through the scaling groups, checking for any duplicates of the deployment group ref
             for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-                if (scalingGroup.getDeploymentGroupRef().equals(deploymentGroupRef)) {
+                if (!scalingGroup.getName().equals(name) && scalingGroup.getDeploymentGroupRef().equals(deploymentGroupRef)) {
                     throw new CommandValidationException("Deployment Group " + deploymentGroupRef + " is already in " +
                             "use by " + scalingGroup.getName());
                 }

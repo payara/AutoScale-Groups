@@ -63,14 +63,14 @@
 
             <!-- Page Title -->
             <sun:title id="propertyContentPage" title="AutoScale Group"
-                       helpText="View the active AutoScale Group for this Deployment Group">
+                       helpText="View the active AutoScale Group for this Deployment Group. Create, delete, or configure a Scaling Group using one of the AutoScale Group tabs.">
             </sun:title>
 
             <sun:propertySheet id="scalingGroupNameSheet">
                 <!-- Text Field section -->
                 <sun:propertySheetSection id="propertySectionTextField">
                     <sun:property id="dgScalingGroupProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
-                                  label="Scaling Group:"  helpText="Scaling Group configured for this Deployment Group. Create, delete, or configure a Scaling Group from one of the AutoScale Group tabs above.">
+                                  label="Scaling Group:">
                         <sun:staticText id="dgScalingGroupNameText" text="#{pageSession.dgScalingGroupResponse.data.extraProperties.scalingGroupName}"/>
                     </sun:property>
                 </sun:propertySheetSection>

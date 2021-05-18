@@ -105,9 +105,9 @@ public class GetNodesScalingGroupConfigurationCommand extends GetScalingGroupCon
         Properties extraProps = new Properties();
         Map<String, Object> configMap = new HashMap<>();
         configMap.put("name", nodesScalingGroup.getName());
-        configMap.put("configRef", nodesScalingGroup.getConfigRef());
-        configMap.put("deploymentGroupRef", nodesScalingGroup.getDeploymentGroupRef());
-        configMap.put("nodeRefs", nodesScalingGroup.getNodeRefs());
+        configMap.put("config", nodesScalingGroup.getConfigRef());
+        configMap.put("deploymentGroup", nodesScalingGroup.getDeploymentGroupRef());
+        configMap.put("nodes", nodesScalingGroup.getNodeRefs());
 
         extraProps.put("scalingGroupConfig", configMap);
         adminCommandContext.getActionReport().setExtraProperties(extraProps);
