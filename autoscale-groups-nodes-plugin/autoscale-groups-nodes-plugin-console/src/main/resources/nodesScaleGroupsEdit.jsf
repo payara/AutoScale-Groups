@@ -44,8 +44,10 @@
                 setSessionAttribute(key="autoScaleGroupsTabs" value="nodesScaleGroupsTab");
                 getRequestValue(key="scalingGroupName" value="#{pageSession.scalingGroupName}");
                 urlencode(value="#{pageSession.scalingGroupName}" encoding="UTF-8" result="#{pageSession.encodedScalingGroupName}");
+                getRequestValue(key="dgName" value="#{pageSession.dgName}");
+                urlencode(value="#{pageSession.dgName}" encoding="UTF-8" result="#{pageSession.encodedDGName}");
                 setPageSessionAttribute(key="selfPage",
-                        value="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsEdit.jsf?scalingGroupName=#{pageSession.encodedScalingGroupName}");
+                        value="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsEdit.jsf?scalingGroupName=#{pageSession.encodedScalingGroupName}&dgName=#{pageSession.encodedDGName}");
                 setPageSessionAttribute(key="parentPage", value="#{request.contextPath}/cluster/dg/dgs.jsf");
 
                 gf.restRequest(endpoint="#{sessionScope.REST_URL}/scaling-groups/nodes-scaling-group/#{pageSession.encodedScalingGroupName}/get-nodes-scaling-group-configuration"  method="GET" result="#{pageSession.scalingGroupConfig}");
@@ -77,14 +79,11 @@
                 <!facet pageButtonsTop>
                     <sun:panelGroup id="topButtons">
                         <sun:button id="saveButton"  text="$resource{i18n.button.Save}"
-                                    onClick="if (guiValidate('#{reqMsg}','#{reqInt}','#{reqPort}'))
-                                    submitAndDisable(this, '$resource{i18n.button.Processing}'); return false;" >
+                                    onClick="if (guiValidate('#{reqMsg}','#{reqInt}','#{reqPort}')) submitAndDisable(this, '$resource{i18n.button.Processing}'); return false;" >
                             <!command
-                                <!-- Convert selected nodes to list -->
+                                <!-- Convert selected nodes to csv -->
                                 convertArrayToCommaString(array="#{pageSession.selectedNodesListArray}",
                                         commaString="#{requestScope.selectedNodesListString}");
-                                <!--convertStringtoList(str="#{requestScope.selectedNodesListString}",
-                                        result="#{pageSession.selectedNodesList}");-->
                                 mapPut(map="#{pageSession.valueMap}" key="nodes" value="#{requestScope.selectedNodesListString}");
 
                                 <!-- Remove name from the valueMap to prevent duplicate param warnings (name already specified by REST request URL) -->
@@ -114,12 +113,12 @@
                     </sun:property>
                     <sun:property id="nodesProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
                                   label="Nodes:" helpText="The nodes this scaling group can create instances on">
-                            <sun:addRemove id="instancesAddRemove" selectAll="$boolean{true}"
-                                           items="#{pageSession.nodesListArray}"
-                                           selected="#{pageSession.selectedNodesListArray}"
-                                           availableItemsLabel="Available Nodes"
-                                           selectedItemsLabel="Selected Nodes">
-                                    </sun:addRemove>
+                        <sun:addRemove id="nodesAddRemove" selectAll="$boolean{true}"
+                                       items="#{pageSession.nodesListArray}"
+                                       selected="#{pageSession.selectedNodesListArray}"
+                                       availableItemsLabel="Available Nodes"
+                                       selectedItemsLabel="Selected Nodes">
+                        </sun:addRemove>
                     </sun:property>
                 </sun:propertySheetSection>
             </sun:propertySheet>

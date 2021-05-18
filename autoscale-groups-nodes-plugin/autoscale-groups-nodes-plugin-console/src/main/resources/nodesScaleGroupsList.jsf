@@ -65,7 +65,7 @@
                 setPageSessionAttribute(key="parentPage",
                         value="#{request.contextPath}/cluster/dg/dgs.jsf");
 
-                setPageSessionAttribute(key="createLink" value="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsNew.jsf");
+                setPageSessionAttribute(key="createLink" value="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsNew.jsf?dgName=#{pageSession.encodedDGName}");
                 setPageSessionAttribute(key="listLink" value="#{pageSession.selfPage}");
 
                 py.getScalingGroupsList(endpoint="#{sessionScope.REST_URL}/scaling-groups", result="#{pageSession.listOfRows}");
@@ -106,7 +106,7 @@
                     <sun:tableColumn headerText="Name" rowHeader="$boolean{true}"
                                      valign="top" id="col1">
                         <sun:hyperlink id="nameLink" text="#{td.value.name}"
-                                       url="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsEdit.jsf?scalingGroupName=#{td.value.name}" />
+                                       url="#{request.contextPath}/nodesScaleGroups/nodesScaleGroupsEdit.jsf?scalingGroupName=#{td.value.name}&dgName=#{pageSession.encodedDGName}" />
                     </sun:tableColumn>
 
                     <sun:tableColumn headerText="Deployment Group" rowHeader="$boolean{true}" id="col3">
