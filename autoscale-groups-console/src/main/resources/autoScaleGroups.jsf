@@ -50,9 +50,11 @@
                 setPageSessionAttribute(key="parentPage",
                         value="#{request.contextPath}/cluster/dg/dgs.jsf");
 
+                createMap(result="#{pageSession.valueMap}");
                 gf.restRequest(
                         endpoint="#{sessionScope.REST_URL}/deployment-groups/deployment-group/#{pageSession.encodedDGName}/get-deployment-group-scaling-group",
                         method="GET", result="#{pageSession.dgScalingGroupResponse}");
+                mapPut(map="#{pageSession.valueMap}", key="quantity", value="1");
             />
         </event>
         <sun:form id="propertyForm">
@@ -66,12 +68,36 @@
                        helpText="View the active AutoScale Group for this Deployment Group. Create, delete, or configure a Scaling Group using one of the AutoScale Group tabs.">
             </sun:title>
 
-            <sun:propertySheet id="scalingGroupNameSheet">
-                <!-- Text Field section -->
+            <sun:button id="scaleUpButton" text="Scale Up" primary="#{false}"
+                        onClick="if ( getConfirm(this,'Scale up Deployment Group?') )
+                { return submitAndDisable(this, '$resource{i18n.button.Processing}');}  else {return false;} " >
+                <!command
+                    gf.restRequest(endpoint="#{sessionScope.REST_URL}/deployment-groups/deployment-group/#{pageSession.encodedDGName}/scale-up",
+                            method="POST", attrs="#{pageSession.valueMap}");
+                    gf.redirect(page="#{pageSession.selfPage}&alertType=${alertType}&alertSummary=${alertSummary}&alertDetail=${alertDetail}");
+                />
+            </sun:button>
+
+            <sun:button id="scaleDownButton" text="Scale Down" disabled="#{pageSession.disableButtons}" primary="#{false}"
+                        onClick="if ( getConfirm(this,'Scale down Deployment Group?') )
+                { return submitAndDisable(this, '$resource{i18n.button.Processing}');}  else {return false;} " >
+                <!command
+                    gf.restRequest(endpoint="#{sessionScope.REST_URL}/deployment-groups/deployment-group/#{pageSession.encodedDGName}/scale-down",
+                            method="POST", attrs="#{pageSession.valueMap}");
+                    gf.redirect(page="#{pageSession.selfPage}&alertType=${alertType}&alertSummary=${alertSummary}&alertDetail=${alertDetail}");
+                />
+                "<br /><br />
+            </sun:button>
+            "<br /><br />
+            <sun:propertySheet id="scalingGroupSheet">
                 <sun:propertySheetSection id="propertySectionTextField">
                     <sun:property id="dgScalingGroupProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
                                   label="Scaling Group:">
                         <sun:staticText id="dgScalingGroupNameText" text="#{pageSession.dgScalingGroupResponse.data.extraProperties.scalingGroupName}"/>
+                    </sun:property>
+                    <sun:property id="scaleQuantityProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
+                                  label="Scale Quantity:">
+                        <sun:textField id="scaleQuantityText" text="#{pageSession.valueMap['quantity']}"/>
                     </sun:property>
                 </sun:propertySheetSection>
             </sun:propertySheet>
