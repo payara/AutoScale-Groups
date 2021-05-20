@@ -160,16 +160,20 @@ public class NodesScaler extends Scaler {
         }
 
         try {
-            List<String> instanceNames = createInstances(numberOfNewInstances, scalingGroup);
-            startInstances(instanceNames);
+            List<String> instanceNames = createInstances(numberOfNewInstances, scalingGroup,
+                    actionReport.addSubActionsReport());
+            startInstances(instanceNames, actionReport.addSubActionsReport());
         } catch (CommandException commandException) {
-            LOGGER.severe(commandException.getMessage());
+            actionReport.setFailureCause(commandException);
+            actionReport.setActionExitCode(ActionReport.ExitCode.FAILURE);
+            return actionReport;
         }
 
         return actionReport;
     }
 
-    private List<String> createInstances(int numberOfNewInstances, ScalingGroup scalingGroup) throws CommandException {
+    private List<String> createInstances(int numberOfNewInstances, ScalingGroup scalingGroup,
+            ActionReport actionReport) throws CommandException {
         List<String> instanceNames = new ArrayList<>();
 
         // Get the starting balance of instances to nodes
@@ -191,27 +195,32 @@ public class NodesScaler extends Scaler {
                 parameterMap.add("config", scalingGroup.getConfigRef());
             }
             parameterMap.add("autoname", "true");
-            parameterMap.add("extraterse", "true");
+            parameterMap.add("terse", "true");
             parameterMap.add("node", maxNodeEntry.getKey());
 
             // Execute the command with our parameters - we don't want to execute them in a parallel manner since
             // we'll run into issues with locking on the config beans
-            ActionReport actionReport = commandRunner.getActionReport("plain");
+            ActionReport subActionReport = actionReport.addSubActionsReport();
             CommandRunner.CommandInvocation createInstanceCommand = commandRunner.getCommandInvocation(
-                    "create-instance", actionReport, internalSystemAdministrator.getSubject());
+                    "create-instance", subActionReport, internalSystemAdministrator.getSubject());
             createInstanceCommand.parameters(parameterMap);
             createInstanceCommand.execute();
 
             // Check if we have any failures - we don't want to continue if any failed
-            if (actionReport.hasFailures()) {
+            if (subActionReport.hasFailures()) {
                 LOGGER.severe("Encountered an error scaling up instances. " +
                         instanceCounter + " were created out of the requested " + numberOfNewInstances + ". " +
-                        "The error encountered was: " + actionReport.getFailureCause().getMessage());
-                throw new CommandException("Encountered an error scaling up instances.", actionReport.getFailureCause());
+                        "The error encountered was: " + subActionReport.getFailureCause().getMessage());
+                throw new CommandException("Encountered an error scaling up instances.",
+                        subActionReport.getFailureCause());
             }
 
-            // The output of the create-instance command with the "extraterse" option should just be the instance name
-            instanceNames.add(actionReport.getMessage());
+            // The output of the create-instance command with the "terse" option should be in the format
+            // "The instance, wibbles-bibbles, was created on host tiddles"
+            // We're not using the extraterse option here so that the command output is an actual sentence
+            String actionReportMessage = subActionReport.getMessage();
+            instanceNames.add(actionReportMessage.substring(
+                    actionReportMessage.indexOf(", ") + 2, actionReportMessage.lastIndexOf(", ")));
 
             // Adjust the node balance
             scalingGroupBalance.put(maxNodeEntry.getKey(), maxNodeEntry.getValue() + 1);
@@ -223,10 +232,11 @@ public class NodesScaler extends Scaler {
         return instanceNames;
     }
 
-    private void startInstances(List<String> instanceNames) {
+    private void startInstances(List<String> instanceNames, ActionReport actionReport) {
         ScaleCommandHelper scaleCommandHelper = new ScaleCommandHelper(serviceLocator.getService(Domain.class),
                 commandRunner, internalSystemAdministrator.getSubject());
-        scaleCommandHelper.runCommandInParallelAcrossInstances("start-instance", new ParameterMap(), instanceNames, true);
+        scaleCommandHelper.runCommandInParallelAcrossInstances("start-instance", new ParameterMap(),
+                instanceNames, actionReport.addSubActionsReport());
     }
 
     @Override
@@ -243,10 +253,12 @@ public class NodesScaler extends Scaler {
 
         try {
             List<String> instanceNames = determineInstancesToStop(numberOfInstancesToRemove, scalingGroup);
-            stopInstances(instanceNames);
-            deleteInstances(instanceNames);
+            stopInstances(instanceNames, actionReport.addSubActionsReport());
+            deleteInstances(instanceNames, actionReport.addSubActionsReport());
         } catch (CommandException commandException) {
-            LOGGER.severe(commandException.getMessage());
+            actionReport.setFailureCause(commandException);
+            actionReport.setActionExitCode(ActionReport.ExitCode.FAILURE);
+            return actionReport;
         }
 
         return actionReport;
@@ -311,18 +323,17 @@ public class NodesScaler extends Scaler {
         return scalingGroupBalance;
     }
 
-    private void stopInstances(List<String> instanceNames) {
+    private void stopInstances(List<String> instanceNames, ActionReport actionReport) {
         ScaleCommandHelper scaleCommandHelper = new ScaleCommandHelper(serviceLocator.getService(Domain.class),
                 commandRunner, internalSystemAdministrator.getSubject());
         scaleCommandHelper.runCommandInParallelAcrossInstances("stop-instance", new ParameterMap(),
-                instanceNames, true);
+                instanceNames, actionReport.addSubActionsReport());
     }
 
-    private void deleteInstances(List<String> instanceNames) {
+    private void deleteInstances(List<String> instanceNames, ActionReport actionReport) {
         for (String instanceName : instanceNames) {
-            ActionReport actionReport = commandRunner.getActionReport("plain");
             CommandRunner.CommandInvocation deleteInstanceCommand = commandRunner.getCommandInvocation(
-                    "delete-instance", actionReport, internalSystemAdministrator.getSubject());
+                    "delete-instance", actionReport.addSubActionsReport(), internalSystemAdministrator.getSubject());
 
             ParameterMap parameterMap = new ParameterMap();
             // Primary parameter is called DEFAULT, regardless of its actual name
