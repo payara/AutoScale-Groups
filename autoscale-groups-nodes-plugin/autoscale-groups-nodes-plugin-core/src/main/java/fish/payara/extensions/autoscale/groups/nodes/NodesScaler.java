@@ -326,7 +326,10 @@ public class NodesScaler extends Scaler {
         }
 
         for (Server instance : instances) {
-            scalingGroupBalance.put(instance.getNodeRef(), scalingGroupBalance.get(instance.getNodeRef()) + 1);
+            // We only care about the balance of instances on nodes in our config
+            if (nodeRefs.contains(instance.getNodeRef())) {
+                scalingGroupBalance.put(instance.getNodeRef(), scalingGroupBalance.get(instance.getNodeRef()) + 1);
+            }
         }
 
         return scalingGroupBalance;
