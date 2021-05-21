@@ -62,6 +62,7 @@ import javax.inject.Inject;
 import java.util.List;
 
 /**
+ * Creates a {@link NodesScalingGroup}.
  *
  * @author Andrew Pielage
  */

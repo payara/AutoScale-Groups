@@ -47,6 +47,7 @@ import org.jvnet.hk2.config.Element;
 import java.util.List;
 
 /**
+ * {@link ScalingGroup} extension that scales on Payara SSH Nodes.
  *
  * @author Andrew Pielage
  */

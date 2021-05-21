@@ -89,6 +89,9 @@ public class NodesScaler extends Scaler {
 
     @Override
     protected void validate(int numberOfInstances, ScalingGroup scalingGroup) throws CommandValidationException {
+        super.validate(numberOfInstances, scalingGroup);
+
+        // Check that we have a command runner
         if (commandRunner == null) {
             commandRunner = serviceLocator.getService(CommandRunner.class);
 
@@ -98,6 +101,7 @@ public class NodesScaler extends Scaler {
             }
         }
 
+        // Check that we have a system admin
         if (internalSystemAdministrator == null) {
             internalSystemAdministrator = serviceLocator.getService(InternalSystemAdministrator.class);
 
@@ -109,10 +113,12 @@ public class NodesScaler extends Scaler {
 
         List<NodesScalingGroup> nodesScalingGroups = scalingGroups.getScalingGroupsOfType(NodesScalingGroup.class);
 
+        // Check that we actually have some nodes scaling groups
         if (nodesScalingGroups.isEmpty()) {
             throw new CommandValidationException("No Nodes Scaling Groups found!");
         }
 
+        // Check that the nodes scaling group exists
         boolean exists = false;
         for (NodesScalingGroup nodesScalingGroup : nodesScalingGroups) {
             if (nodesScalingGroup.getName().equals(scalingGroup.getName())) {
@@ -126,6 +132,7 @@ public class NodesScaler extends Scaler {
                     " is not a Nodes Scaling Group.");
         }
 
+        // Check we can find the Nodes.
         if (nodes == null) {
             nodes = serviceLocator.getService(Nodes.class);
 
@@ -134,6 +141,7 @@ public class NodesScaler extends Scaler {
             }
         }
 
+        // Check that the node references are valid
         for (String nodeRef : ((NodesScalingGroup) scalingGroup).getNodeRefs()) {
             if (!StringUtils.ok(nodeRef)) {
                 throw new CommandValidationException("Scaling Group has an invalid node reference configured: " + nodeRef);
@@ -160,8 +168,10 @@ public class NodesScaler extends Scaler {
         }
 
         try {
+            // Create the instances (we currently fail out if we fail to create a single one)
             List<String> instanceNames = createInstances(numberOfNewInstances, scalingGroup,
                     actionReport.addSubActionsReport());
+            // Attempt to start the instances
             startInstances(instanceNames, actionReport.addSubActionsReport());
         } catch (CommandException commandException) {
             actionReport.setFailureCause(commandException);
@@ -172,6 +182,15 @@ public class NodesScaler extends Scaler {
         return actionReport;
     }
 
+    /**
+     * Creates the requested number of instances using the {@link NodesScalingGroup scaling group} config
+     *
+     * @param numberOfNewInstances The number of instances to create
+     * @param scalingGroup The scaling group we're creating the instances against
+     * @param actionReport The action report we want to add out command outputs to
+     * @return A List containing the names of all created instances
+     * @throws CommandException If there's an error creating any instances.
+     */
     private List<String> createInstances(int numberOfNewInstances, ScalingGroup scalingGroup,
             ActionReport actionReport) throws CommandException {
         List<String> instanceNames = new ArrayList<>();
@@ -241,6 +260,11 @@ public class NodesScaler extends Scaler {
         return instanceNames;
     }
 
+    /**
+     * Starts the instances in parallel using {@link ScaleCommandHelper}.
+     * @param instanceNames The names of the instances to start
+     * @param actionReport The {@link ActionReport} we want to add out command outputs to
+     */
     private void startInstances(List<String> instanceNames, ActionReport actionReport) {
         ScaleCommandHelper scaleCommandHelper = new ScaleCommandHelper(serviceLocator.getService(Domain.class),
                 commandRunner, internalSystemAdministrator.getSubject());
@@ -260,21 +284,25 @@ public class NodesScaler extends Scaler {
             return actionReport;
         }
 
-        try {
-            List<String> instanceNames = determineInstancesToStop(numberOfInstancesToRemove, scalingGroup);
-            stopInstances(instanceNames, actionReport.addSubActionsReport());
-            deleteInstances(instanceNames, actionReport.addSubActionsReport());
-        } catch (CommandException commandException) {
-            actionReport.setFailureCause(commandException);
-            actionReport.setActionExitCode(ActionReport.ExitCode.FAILURE);
-            return actionReport;
-        }
+        // Determine which instances to stop, attempting to keep the nodes balanced
+        List<String> instanceNames = determineInstancesToStop(numberOfInstancesToRemove, scalingGroup);
+        // Stop the instances in parallel
+        stopInstances(instanceNames, actionReport.addSubActionsReport());
+        // Delete the instances sequentially
+        deleteInstances(instanceNames, actionReport.addSubActionsReport());
 
         return actionReport;
     }
 
-    private List<String> determineInstancesToStop(int numberOfInstancesToRemove, ScalingGroup scalingGroup)
-            throws CommandException {
+    /**
+     * Determines the names of which instances to stop in the scaling group, attempting to keep the number of instances
+     * on nodes balanced.
+     *
+     * @param numberOfInstancesToRemove The number of instances to remove
+     * @param scalingGroup The scaling group to remove the instances from
+     * @return A list of names of the instances to stop
+     */
+    private List<String> determineInstancesToStop(int numberOfInstancesToRemove, ScalingGroup scalingGroup) {
         List<String> instanceNames = new ArrayList<>();
 
         // Quick check: will we just be removing all instances? If so we can skip trying to figure out the balance
@@ -319,6 +347,13 @@ public class NodesScaler extends Scaler {
         return instanceNames;
     }
 
+    /**
+     * Returns the number of instances on each node within the scaling group config.
+     *
+     * @param instances The list of {@link Server Servers} to get the balance of.
+     * @param nodeRefs The nodes to get the balance of.
+     * @return A Map containing how many of the given instances are on each node.
+     */
     private Map<String, Integer> getNodesInstanceBalance(List<Server> instances, List<String> nodeRefs) {
         Map<String, Integer> scalingGroupBalance = new HashMap<>();
         for (String nodeRef : nodeRefs) {
@@ -326,7 +361,7 @@ public class NodesScaler extends Scaler {
         }
 
         for (Server instance : instances) {
-            // We only care about the balance of instances on nodes in our config
+            // We only care about the balance of instances on nodes in our current config
             if (nodeRefs.contains(instance.getNodeRef())) {
                 scalingGroupBalance.put(instance.getNodeRef(), scalingGroupBalance.get(instance.getNodeRef()) + 1);
             }
@@ -335,6 +370,12 @@ public class NodesScaler extends Scaler {
         return scalingGroupBalance;
     }
 
+    /**
+     * Stops the instances in parallel using {@link ScaleCommandHelper}.
+     *
+     * @param instanceNames The names of the instances to stop
+     * @param actionReport The action report to add the command outputs to
+     */
     private void stopInstances(List<String> instanceNames, ActionReport actionReport) {
         ScaleCommandHelper scaleCommandHelper = new ScaleCommandHelper(serviceLocator.getService(Domain.class),
                 commandRunner, internalSystemAdministrator.getSubject());
@@ -342,6 +383,12 @@ public class NodesScaler extends Scaler {
                 instanceNames, actionReport.addSubActionsReport());
     }
 
+    /**
+     * Deletes instances sequentially.
+     *
+     * @param instanceNames The names of the instances to stop.
+     * @param actionReport The action report to add the command outputs to.
+     */
     private void deleteInstances(List<String> instanceNames, ActionReport actionReport) {
         for (String instanceName : instanceNames) {
             CommandRunner.CommandInvocation deleteInstanceCommand = commandRunner.getCommandInvocation(

@@ -73,10 +73,12 @@ public abstract class CreateScalingGroupCommand extends ScalingGroupCommand {
     protected void validateParams() throws CommandValidationException {
         super.validateParams();
 
+        // Check that the scaling group name isn't a duplicate
         if (scalingGroups.getScalingGroup(name) != null) {
             throw new CommandValidationException("Scaling group with name " + name + " already exists");
         }
 
+        // Check that the deployment group is valid and exists
         if (!StringUtils.ok(deploymentGroupRef) || deploymentGroups.getDeploymentGroup(deploymentGroupRef) == null) {
             throw new CommandValidationException("Deployment Group name " + deploymentGroupRef +
                     " is not valid or doesn't exist");
@@ -90,10 +92,10 @@ public abstract class CreateScalingGroupCommand extends ScalingGroupCommand {
             }
         }
 
+        // Check the config is valid and exists
         if (!StringUtils.ok(configRef)) {
             throw new CommandValidationException("Config name " + configRef + " is not valid");
         }
-
         if (configs.getConfigByName(configRef) == null) {
             throw new CommandValidationException("Config name " + configRef + " does not exist");
         }

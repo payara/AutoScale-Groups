@@ -40,106 +40,29 @@
 
 package fish.payara.extensions.autoscale.groups.admingui;
 
-import com.sun.enterprise.util.StringUtils;
 import com.sun.jsftemplating.annotation.Handler;
 import com.sun.jsftemplating.annotation.HandlerInput;
 import com.sun.jsftemplating.annotation.HandlerOutput;
 import com.sun.jsftemplating.layout.descriptors.handler.HandlerContext;
 import org.glassfish.admingui.common.util.GuiUtil;
-import org.glassfish.admingui.common.util.RestResponse;
 import org.glassfish.admingui.common.util.RestUtil;
 
-import javax.xml.ws.Response;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Generic Handler methods for performing various tasks on core AutoScale Groups pages.
+ *
+ * @author Andrew Pielage
+ */
 public class AutoScaleGroupsHandlers {
 
-    @Handler(id = "py.getScalingGroupConfig",
-            input = {
-                    @HandlerInput(name = "endpoint", type = String.class, required = true),
-                    @HandlerInput(name = "scalingGroupName", type = String.class, required = true)
-            },
-            output = {
-                    @HandlerOutput(name = "result", type = Map.class)
-            })
-    public static void getScalingGroupConfig(HandlerContext handlerCtx) {
-        try {
-            // First check if we've actually been given a name
-            String scalingGroupName = (String) handlerCtx.getInputValue("scalingGroupName");
-            if (!StringUtils.ok(scalingGroupName)) {
-                return;
-            }
-
-            // Get all scaling group types
-            Map<String, String> scalingGroupTypesMap = RestUtil.getChildMap((String) handlerCtx.getInputValue("endpoint"));
-
-            // Search for our scaling group
-            for (Map.Entry<String, String> scalingGroupType : scalingGroupTypesMap.entrySet()) {
-                Map<String, String> scalingGroupEntities = RestUtil.getChildMap(scalingGroupType.getValue());
-
-                for (Map.Entry<String, String> scalingGroupEntity : scalingGroupEntities.entrySet()) {
-                    if (scalingGroupEntity.getKey().equals(scalingGroupName)) {
-                        // Found it
-                        Map<String, Object> scalingGroup = null;
-
-                        // Check if there is a get command we can use (assuming pattern of get-xyz-configuration)
-                        String getCommandEndpoint = scalingGroupEntity.getValue() + "/get-" +
-                                scalingGroupType.getKey() + "-configuration";
-                        RestResponse getCommandResponse = RestUtil.get(getCommandEndpoint);
-                        // If there is, use it. The reason for this is because querying entities doesn't account for
-                        // child elements (e.g. server references), whereas we can assume a get-xxx-configuration
-                        // command would return all pertinent information
-                        if (getCommandResponse.isSuccess()) {
-                            scalingGroup = RestUtil.parseResponse(getCommandResponse, handlerCtx, getCommandEndpoint,
-                                    null, true, true);
-                        } else {
-                            // If there isn't a get command, just attempt to get the entity attributes
-                            scalingGroup = RestUtil.getAttributesMap(scalingGroupEntity.getValue());
-                        }
-
-                        // Return
-                        handlerCtx.setOutputValue("result", scalingGroup);
-                        return;
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            GuiUtil.handleException(handlerCtx, ex);
-        }
-    }
-
-    @Handler(id = "py.getScalingGroupsNamesList",
-            input = {
-                    @HandlerInput(name = "endpoint", type = String.class, required = true)
-            },
-            output = {
-                    @HandlerOutput(name = "result", type = List.class)
-            })
-    public static void getScalingGroupsNamesList(HandlerContext handlerCtx) {
-        try {
-            // Get all scaling group types
-            Map<String, String> scalingGroupTypesMap = RestUtil.getChildMap((String) handlerCtx.getInputValue("endpoint"));
-
-            // Add empty string to return list so that the dropdown has a default
-            List<String> scalingGroupNames = new ArrayList<>();
-//            scalingGroupNames.add("");
-
-            // For each type, get the config of each scaling groups and add them to a List
-            for (Map.Entry<String, String> scalingGroupType : scalingGroupTypesMap.entrySet()) {
-                Map<String, String> scalingGroupEntities = RestUtil.getChildMap(scalingGroupType.getValue());
-                scalingGroupNames.addAll(scalingGroupEntities.keySet());
-            }
-
-            // Return
-            handlerCtx.setOutputValue("result", scalingGroupNames);
-        } catch (Exception ex) {
-            GuiUtil.handleException(handlerCtx, ex);
-        }
-    }
-
+    /**
+     * Gets the config of all scaling groups.
+     *
+     * @param handlerCtx
+     */
     @Handler(id = "py.getScalingGroupsList",
             input = {
                     @HandlerInput(name = "endpoint", type = String.class, required = true)
@@ -171,50 +94,6 @@ public class AutoScaleGroupsHandlers {
 
             // Return
             handlerCtx.setOutputValue("result", scalingGroupMaps);
-        } catch (Exception ex) {
-            GuiUtil.handleException(handlerCtx, ex);
-        }
-    }
-
-    @Handler(id = "py.setDeploymentGroupScalingGroup",
-            input = {
-                    @HandlerInput(name = "endpoint", type = String.class, required = true),
-                    @HandlerInput(name = "deploymentGroupName", type = String.class, required = true),
-                    @HandlerInput(name = "scalingGroupName", type = String.class, required = true),
-            },
-            output = {
-                    @HandlerOutput(name = "result", type = String.class)
-            })
-    public static void setDeploymentGroupScalingGroup(HandlerContext handlerCtx) {
-        try {
-            String endpoint = (String) handlerCtx.getInputValue("endpoint");
-            String deploymentGroupName = (String) handlerCtx.getInputValue("deploymentGroupName");
-            String scalingGroupName = (String) handlerCtx.getInputValue("scalingGroupName");
-
-            Map<String, Object> commandParameters = new HashMap<>();
-            commandParameters.put("deploymentgroup", deploymentGroupName);
-
-            // Get all scaling group types
-            Map<String, String> scalingGroupTypesMap = RestUtil.getChildMap(endpoint);
-
-            // Search for our scaling group
-            for (Map.Entry<String, String> scalingGroupType : scalingGroupTypesMap.entrySet()) {
-                Map<String, String> scalingGroupEntities = RestUtil.getChildMap(scalingGroupType.getValue());
-
-                for (Map.Entry<String, String> scalingGroupEntity : scalingGroupEntities.entrySet()) {
-                    if (scalingGroupEntity.getKey().equals(scalingGroupName)) {
-                        // Found it - execute set command
-                        String setCommandEndpoint = scalingGroupEntity.getValue() + "/set-" +
-                                scalingGroupType.getKey() + "-configuration";
-                        Map<String, Object> result = RestUtil.restRequest(
-                                setCommandEndpoint, commandParameters, "post", handlerCtx, true);
-
-                        // Return
-                        handlerCtx.setOutputValue("result", result);
-                        return;
-                    }
-                }
-            }
         } catch (Exception ex) {
             GuiUtil.handleException(handlerCtx, ex);
         }

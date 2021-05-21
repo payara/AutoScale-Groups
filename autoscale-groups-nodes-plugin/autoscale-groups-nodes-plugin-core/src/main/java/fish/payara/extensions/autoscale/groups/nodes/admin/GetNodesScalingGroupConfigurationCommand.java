@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
+ * Gets the configuration of a {@link NodesScalingGroup}.
  *
  * @author Andrew Pielage
  */
