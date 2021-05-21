@@ -224,14 +224,12 @@ public class ScaleCommandHelper {
             }
             CommandRunnable cmdRunnable = null;
             try {
-
                 cmdRunnable = responseQueue.poll(timeLeft, MILLISECONDS);
             } catch (InterruptedException e) {
                 // This thread has been interrupted. Abort
                 threadPool.shutdownNow();
                 String msg = Strings.get("cluster.command.interrupted", targetNames, n, nInstances, commandName);
                 LOGGER.warning(msg);
-                output.append(msg).append("\n");
                 failureOccurred = true;
                 // Re-establish interrupted state on thread
                 Thread.currentThread().interrupt();
@@ -257,9 +255,7 @@ public class ScaleCommandHelper {
                 reportResult.failedServerNames.add(cname);
                 String msg = cname + ": " + instanceReport.getMessage();
                 LOGGER.severe(msg);
-                output.append(msg).append("\n");
                 msg = Strings.get("cluster.command.instancesFailed", commandName, cname);
-
                 progressStatus.progress(1, msg);
             } else {
                 // Command worked. Note that too.

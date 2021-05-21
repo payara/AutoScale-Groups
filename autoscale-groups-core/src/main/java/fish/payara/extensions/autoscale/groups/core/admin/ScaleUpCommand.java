@@ -108,11 +108,26 @@ public class ScaleUpCommand extends ScaleCommand {
                     // scaling group config bean interface that we're trying to compare (e.g. NodesScalingGroup)
                     if (scalerService.getScalingGroupClass().equals(scalingGroup.getClass().getInterfaces()[0])) {
                         adminCommandContext.setActionReport(scalerService.scaleUp(quantity, scalingGroup));
-                        break;
+
+                        if (adminCommandContext.getActionReport().hasFailures()) {
+                            if (adminCommandContext.getActionReport().hasSuccesses()) {
+                                adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.WARNING);
+                            } else {
+                                adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.FAILURE);
+                            }
+                        } else if (adminCommandContext.getActionReport().hasWarnings()) {
+                            adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.WARNING);
+                        }
+                        return;
                     }
                 }
                 break;
             }
         }
+
+        // If we've got to here, there was no match
+        adminCommandContext.getActionReport().setMessage(
+                "Deployment group does not appear to have a configured scaling group.");
+        adminCommandContext.getActionReport().setActionExitCode(ActionReport.ExitCode.FAILURE);
     }
 }

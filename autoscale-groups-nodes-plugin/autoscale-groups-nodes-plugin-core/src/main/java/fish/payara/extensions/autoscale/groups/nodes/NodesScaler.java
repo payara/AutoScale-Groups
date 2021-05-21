@@ -217,10 +217,19 @@ public class NodesScaler extends Scaler {
 
             // The output of the create-instance command with the "terse" option should be in the format
             // "The instance, wibbles-bibbles, was created on host tiddles"
-            // We're not using the extraterse option here so that the command output is an actual sentence
             String actionReportMessage = subActionReport.getMessage();
-            instanceNames.add(actionReportMessage.substring(
-                    actionReportMessage.indexOf(", ") + 2, actionReportMessage.lastIndexOf(", ")));
+            if (actionReportMessage.contains("was created on host")) {
+                try {
+                    instanceNames.add(actionReportMessage.substring(
+                            actionReportMessage.indexOf(", ") + 2, actionReportMessage.lastIndexOf(", ")));
+                } catch (StringIndexOutOfBoundsException stringIndexOutOfBoundsException) {
+                    throw new CommandException(
+                            "Encountered an error scaling up instances. Could not determine instance name");
+                }
+            } else {
+                throw new CommandException(
+                        "Encountered an error scaling up instances. Could not determine instance name");
+            }
 
             // Adjust the node balance
             scalingGroupBalance.put(maxNodeEntry.getKey(), maxNodeEntry.getValue() + 1);

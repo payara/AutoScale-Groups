@@ -85,6 +85,10 @@ public abstract class ScaleCommand implements AdminCommand {
             if (scalingGroups == null) {
                 throw new CommandValidationException("Could not find ScalingGroups config bean!");
             }
+
+            if (scalingGroups.getScalingGroups().isEmpty()) {
+                throw new CommandValidationException("No Scaling Groups found!");
+            }
         }
 
         if (!StringUtils.ok(target)) {
