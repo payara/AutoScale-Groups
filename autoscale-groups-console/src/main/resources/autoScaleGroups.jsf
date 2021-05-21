@@ -37,7 +37,7 @@
     only if the new code is made subject to such option by the copyright
     holder.
 -->
-<!composition template="/templates/default.layout"  guiTitle="AutoScale Group">
+<!composition template="/templates/default.layout"  guiTitle="AutoScale">
     <!define name="content">
         <event>
             <!beforeCreate
@@ -64,7 +64,7 @@
 #include "/common/shared/alertMsg_1.inc"
 
             <!-- Page Title -->
-            <sun:title id="propertyContentPage" title="AutoScale Group"
+            <sun:title id="propertyContentPage" title="Active AutoScale Group"
                        helpText="View the active AutoScale Group for this Deployment Group. Create, delete, or configure a Scaling Group using one of the AutoScale Group tabs.">
             </sun:title>
 
