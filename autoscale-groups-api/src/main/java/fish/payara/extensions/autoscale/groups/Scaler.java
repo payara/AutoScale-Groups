@@ -43,7 +43,6 @@ import com.sun.enterprise.util.StringUtils;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.admin.CommandValidationException;
-import org.glassfish.config.support.TranslatedConfigView;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.internal.api.Globals;
 import org.jvnet.hk2.annotations.Contract;
