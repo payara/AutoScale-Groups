@@ -204,7 +204,7 @@ public class NodesScaler extends Scaler {
         int instanceCounter = 0;
         while (instanceCounter < numberOfNewInstances) {
             // Get the node with the least instances
-            Map.Entry<String, Integer> maxNodeEntry = Collections.min(
+            Map.Entry<String, Integer> minNodeEntry = Collections.min(
                     scalingGroupBalance.entrySet(), Comparator.comparing(Map.Entry::getValue));
 
             // Create the parameter map for the create-instance command
@@ -215,7 +215,7 @@ public class NodesScaler extends Scaler {
             }
             parameterMap.add("autoname", "true");
             parameterMap.add("terse", "true");
-            parameterMap.add("node", maxNodeEntry.getKey());
+            parameterMap.add("node", minNodeEntry.getKey());
 
             // Execute the command with our parameters - we don't want to execute them in a parallel manner since
             // we'll run into issues with locking on the config beans
@@ -251,7 +251,7 @@ public class NodesScaler extends Scaler {
             }
 
             // Adjust the node balance
-            scalingGroupBalance.put(maxNodeEntry.getKey(), maxNodeEntry.getValue() + 1);
+            scalingGroupBalance.put(minNodeEntry.getKey(), minNodeEntry.getValue() + 1);
 
             // Increment the counter for our loop
             instanceCounter++;

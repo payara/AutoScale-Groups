@@ -39,19 +39,17 @@
  */
 package fish.payara.extensions.autoscale.groups;
 
-import com.sun.enterprise.config.serverbeans.Nodes;
 import com.sun.enterprise.util.StringUtils;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
 import org.glassfish.api.ActionReport;
-import org.glassfish.api.admin.CommandRunner;
 import org.glassfish.api.admin.CommandValidationException;
+import org.glassfish.config.support.TranslatedConfigView;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.internal.api.Globals;
-import org.glassfish.internal.api.InternalSystemAdministrator;
 import org.jvnet.hk2.annotations.Contract;
 
 import javax.inject.Inject;
-import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Contract class for AutoScale Group service implementations.
@@ -60,6 +58,10 @@ import java.util.List;
  */
 @Contract
 public abstract class Scaler {
+
+    public static final String AUTOSCALE_MAXSCALE_PROP = "fish.payara.autoscale.maxscale";
+
+    protected static final int AUTOSCALE_MAXSCALE_DEFAULT = 100;
 
     @Inject
     protected ServiceLocator serviceLocator;
@@ -140,12 +142,22 @@ public abstract class Scaler {
         }
 
         if (deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef()) == null) {
-            throw new CommandValidationException("Deployment Group " + scalingGroup.getDeploymentGroupRef() + " does not appear to exist!");
+            throw new CommandValidationException("Deployment Group " + scalingGroup.getDeploymentGroupRef() +
+                    " does not appear to exist!");
         }
 
-        if (numberOfInstances < 1) {
+        int maxScale = Integer.getInteger(AUTOSCALE_MAXSCALE_PROP, AUTOSCALE_MAXSCALE_DEFAULT);
+
+        if (maxScale < 1) {
+            Logger.getLogger(Scaler.class.getName()).warning(
+                    AUTOSCALE_MAXSCALE_PROP + " property evaluated to less than 1, defaulting to " +
+                            AUTOSCALE_MAXSCALE_DEFAULT);
+            maxScale = AUTOSCALE_MAXSCALE_DEFAULT;
+        }
+
+        if (numberOfInstances < 1 || numberOfInstances > maxScale) {
             throw new CommandValidationException("Invalid number of instances to scale: " + numberOfInstances +
-                    ". Number of instances to scale must be greater than 1");
+                    ". Number of instances to scale must be greater than 1 and less than " + maxScale);
         }
     }
 }
