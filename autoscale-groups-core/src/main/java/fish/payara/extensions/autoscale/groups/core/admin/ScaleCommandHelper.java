@@ -213,7 +213,7 @@ public class ScaleCommandHelper {
         }
 
         if (LOGGER.isLoggable(FINE)) {
-            LOGGER.fine(String.format("Initial cluster command timeout: %d ms", adminTimeout));
+            LOGGER.fine(String.format("Initial command timeout: %d ms", adminTimeout));
         }
 
         // Now go get results from the response queue.
