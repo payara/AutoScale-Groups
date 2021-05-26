@@ -46,7 +46,7 @@ import com.sun.enterprise.config.serverbeans.Server;
 import com.sun.enterprise.util.StringUtils;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
 import fish.payara.extensions.autoscale.groups.Scaler;
-import fish.payara.extensions.autoscale.groups.Scales;
+import fish.payara.extensions.autoscale.groups.ScalerFor;
 import fish.payara.extensions.autoscale.groups.ScalingGroup;
 import fish.payara.extensions.autoscale.groups.core.admin.ScaleCommandHelper;
 import org.glassfish.api.ActionReport;
@@ -73,7 +73,7 @@ import java.util.logging.Logger;
  * @author Andrew Pielage
  */
 @Service
-@Scales(NodesScalingGroup.class)
+@ScalerFor(NodesScalingGroup.class)
 public class NodesScaler extends Scaler {
 
     @Inject

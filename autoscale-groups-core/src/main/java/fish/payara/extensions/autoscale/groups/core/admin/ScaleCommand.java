@@ -42,6 +42,7 @@ package fish.payara.extensions.autoscale.groups.core.admin;
 
 import com.sun.enterprise.util.StringUtils;
 import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
+import fish.payara.extensions.autoscale.groups.Scaler;
 import fish.payara.extensions.autoscale.groups.ScalingGroups;
 import org.glassfish.api.Param;
 import org.glassfish.api.admin.AdminCommand;
@@ -49,6 +50,10 @@ import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.hk2.api.ServiceLocator;
 
 import javax.inject.Inject;
+import java.util.logging.Logger;
+
+import static fish.payara.extensions.autoscale.groups.Scaler.AUTOSCALE_MAXSCALE_DEFAULT;
+import static fish.payara.extensions.autoscale.groups.Scaler.AUTOSCALE_MAXSCALE_PROP;
 
 /**
  *
@@ -99,7 +104,16 @@ public abstract class ScaleCommand implements AdminCommand {
             throw new CommandValidationException(("Deployment Group does not exist!"));
         }
 
-        if (quantity < 1) {
+        int maxScale = Integer.getInteger(AUTOSCALE_MAXSCALE_PROP, AUTOSCALE_MAXSCALE_DEFAULT);
+
+        if (maxScale < 1) {
+            Logger.getLogger(Scaler.class.getName()).warning(
+                    AUTOSCALE_MAXSCALE_PROP + " property evaluated to less than 1, defaulting to " +
+                            AUTOSCALE_MAXSCALE_DEFAULT);
+            maxScale = AUTOSCALE_MAXSCALE_DEFAULT;
+        }
+
+        if (quantity < 1 || quantity > maxScale) {
             throw new CommandValidationException("Quantity must be greater than 0!");
         }
     }

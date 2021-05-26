@@ -59,8 +59,7 @@ import java.util.logging.Logger;
 public abstract class Scaler {
 
     public static final String AUTOSCALE_MAXSCALE_PROP = "fish.payara.autoscale.maxscale";
-
-    protected static final int AUTOSCALE_MAXSCALE_DEFAULT = 100;
+    public static final int AUTOSCALE_MAXSCALE_DEFAULT = 100;
 
     @Inject
     protected ServiceLocator serviceLocator;
@@ -95,7 +94,7 @@ public abstract class Scaler {
     public abstract ActionReport scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup);
 
     public Class<? extends ScalingGroup> getScalingGroupClass() {
-        return getClass().getAnnotation(Scales.class).value();
+        return getClass().getAnnotation(ScalerFor.class).value();
     }
 
     /**

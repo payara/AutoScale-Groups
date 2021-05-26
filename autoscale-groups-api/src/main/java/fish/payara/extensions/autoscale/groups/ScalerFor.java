@@ -56,7 +56,7 @@ import java.lang.annotation.Target;
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface Scales {
+public @interface ScalerFor {
 
     @Metadata("ScalerFor")
     Class<? extends ScalingGroup> value();
