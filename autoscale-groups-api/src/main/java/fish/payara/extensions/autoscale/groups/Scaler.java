@@ -39,29 +39,123 @@
  */
 package fish.payara.extensions.autoscale.groups;
 
+import com.sun.enterprise.util.StringUtils;
+import fish.payara.enterprise.config.serverbeans.DeploymentGroups;
+import org.glassfish.api.ActionReport;
+import org.glassfish.api.admin.CommandValidationException;
+import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.internal.api.Globals;
 import org.jvnet.hk2.annotations.Contract;
 
+import javax.inject.Inject;
+import java.util.logging.Logger;
+
 /**
- * Contract interface for AutoScale Group service implementations.
+ * Contract class for AutoScale Group service implementations.
  *
  * @author Andrew Pielage
  */
 @Contract
-public interface Scaler {
+public abstract class Scaler {
+
+    public static final String AUTOSCALE_MAXSCALE_PROP = "fish.payara.autoscale.maxscale";
+    public static final int AUTOSCALE_MAXSCALE_DEFAULT = 100;
+
+    @Inject
+    protected ServiceLocator serviceLocator;
+
+    @Inject
+    protected ScalingGroups scalingGroups;
+
+    @Inject
+    protected DeploymentGroups deploymentGroups;
 
     /**
      * Scale up the number of instances in the given Deployment Group by the specified amount.
      *
      * @param numberOfNewInstances The number of instances to scale the Deployment Group up in size by.
-     * @param deploymentGroupName The name of the Deployment Group to scale
+     * @param scalingGroup         The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
+     *                             the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
+     *                             scale, which {@link com.sun.enterprise.config.serverbeans.Config Instance Config} to use, as
+     *                             well as any additional implementation specific information.
+     * @return An {@link ActionReport} detailing the outcome of the operation
      */
-    void scaleUp(int numberOfNewInstances, String deploymentGroupName);
+    public abstract ActionReport scaleUp(int numberOfNewInstances, ScalingGroup scalingGroup);
 
     /**
      * Scale down the number of instances in the given Deployment Group by the specified amount.
      *
      * @param numberOfInstancesToRemove The number of instances to scale the Deployment Group down in size by.
-     * @param deploymentGroupName The name of the Deployment Group to scale
+     * @param scalingGroup              The {@link ScalingGroup Scaling Group} config to use for scaling, holding reference to
+     *                                  the {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup Deployment Group} to
+     *                                  scale, as well as any additional implementation specific information.
+     * @return An {@link ActionReport} detailing the outcome of the operation
      */
-    void scaleDown(int numberOfInstancesToRemove, String deploymentGroupName);
+    public abstract ActionReport scaleDown(int numberOfInstancesToRemove, ScalingGroup scalingGroup);
+
+    public Class<? extends ScalingGroup> getScalingGroupClass() {
+        return getClass().getAnnotation(ScalerFor.class).value();
+    }
+
+    /**
+     * Method to validate that everything required for scaling an instance up or down is initialised
+     * and valid.
+     *
+     * @param numberOfInstances The number of instances to scale up or down.
+     * @param scalingGroup      The {@link ScalingGroup Scaling Group} configuration to use for scaling
+     */
+    protected void validate(int numberOfInstances, ScalingGroup scalingGroup)
+            throws CommandValidationException {
+        if (serviceLocator == null) {
+            serviceLocator = Globals.getDefaultBaseServiceLocator();
+
+            if (serviceLocator == null) {
+                throw new CommandValidationException("Could not find or initialise Service Locator!");
+            }
+        }
+
+        if (scalingGroup == null) {
+            throw new CommandValidationException("Scaling Group appears to be null!");
+        }
+
+        if (scalingGroups == null) {
+            scalingGroups = serviceLocator.getService(ScalingGroups.class);
+
+            if (scalingGroups == null) {
+                throw new CommandValidationException("Could not find or initialise Scaling Groups!");
+            }
+        }
+
+        if (deploymentGroups == null) {
+            deploymentGroups = serviceLocator.getService(DeploymentGroups.class);
+
+            if (deploymentGroups == null) {
+                throw new CommandValidationException("Could not find Deployment Groups!");
+            }
+        }
+
+        if (!StringUtils.ok(scalingGroup.getDeploymentGroupRef())) {
+            throw new CommandValidationException("Scaling Group " + scalingGroup.getName() +
+                    " has an invalid Deployment Group configured: " + scalingGroup.getDeploymentGroupRef());
+        }
+
+        if (deploymentGroups.getDeploymentGroup(scalingGroup.getDeploymentGroupRef()) == null) {
+            throw new CommandValidationException("Deployment Group " + scalingGroup.getDeploymentGroupRef() +
+                    " does not appear to exist!");
+        }
+
+        int maxScale = Integer.getInteger(AUTOSCALE_MAXSCALE_PROP, AUTOSCALE_MAXSCALE_DEFAULT);
+
+        if (maxScale < 1) {
+            Logger.getLogger(Scaler.class.getName()).warning(
+                    AUTOSCALE_MAXSCALE_PROP + " property evaluated to less than 1, defaulting to " +
+                            AUTOSCALE_MAXSCALE_DEFAULT);
+            maxScale = AUTOSCALE_MAXSCALE_DEFAULT;
+        }
+
+        if (numberOfInstances < 1 || numberOfInstances > maxScale) {
+            throw new CommandValidationException("Invalid number of instances to scale: " + numberOfInstances +
+                    ". Number of instances to scale must be greater than 1 and less than " + maxScale);
+        }
+    }
 }

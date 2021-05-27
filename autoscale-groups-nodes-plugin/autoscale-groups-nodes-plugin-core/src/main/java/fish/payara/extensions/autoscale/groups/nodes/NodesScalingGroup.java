@@ -37,23 +37,23 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups;
 
-import javax.validation.Constraint;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package fish.payara.extensions.autoscale.groups.nodes;
+
+import fish.payara.extensions.autoscale.groups.ScalingGroup;
+import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.Element;
+
+import java.util.List;
 
 /**
- * Validator annotation for checking that a {@link ScalingGroup} ConfigBean has a 1:1 relationship with a
- * {@link fish.payara.enterprise.config.serverbeans.DeploymentGroup}.
+ * {@link ScalingGroup} extension that scales on Payara SSH Nodes.
+ *
+ * @author Andrew Pielage
  */
-@Target({ElementType.METHOD, ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy= NotDuplicateDeploymentGroupTargetValidator.class)
-public @interface NotDuplicateDeploymentGroupTarget {
+@Configured
+public interface NodesScalingGroup extends ScalingGroup {
 
-    String message() default "Scaling Group to Deployment Group is a 1:1 relationship, " +
-            "and this Deployment Group is already referenced by another AutoScale Group.";
+    @Element("node-ref")
+    List<String> getNodeRefs();
 }

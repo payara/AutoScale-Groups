@@ -37,54 +37,34 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups;
 
-import com.sun.enterprise.config.serverbeans.Config;
-import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
-import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBeanProxy;
-import org.jvnet.hk2.config.Configured;
+package fish.payara.extensions.autoscale.groups.admin;
 
-import javax.validation.Payload;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import java.beans.PropertyVetoException;
+import com.sun.enterprise.util.StringUtils;
+import fish.payara.extensions.autoscale.groups.ScalingGroups;
+import org.glassfish.api.Param;
+import org.glassfish.api.admin.AdminCommand;
+import org.glassfish.api.admin.CommandValidationException;
 
-import static org.glassfish.config.support.Constants.NAME_SERVER_REGEX;
+import javax.inject.Inject;
 
 /**
- * Parent interface for AutoScale Group implementation ConfigBeans.
+ * Parent class intended to be extended from for any Scaling Groups commands, containing common validation and
+ * parameters.
  *
  * @author Andrew Pielage
  */
-@Configured
-public interface ScalingGroup extends ConfigBeanProxy, Payload {
+public abstract class ScalingGroupCommand implements AdminCommand {
 
-    @Attribute(required = true)
-    @NotNull
-    @Pattern(regexp = NAME_SERVER_REGEX, message = "{sg.invalid.name}", payload = ScalingGroup.class)
-    String getName();
-    void setName(String name) throws PropertyVetoException;
+    @Param(name = "name", primary = true)
+    protected String name;
 
+    @Inject
+    protected ScalingGroups scalingGroups;
 
-    /**
-     * Points to a named {@link Config}. All server instances in the scaling group will share this config.
-     *
-     * @return The name of the {@link Config}
-     */
-    @Attribute(required = true)
-    @NotNull
-    String getConfigRef();
-    void setConfigRef(String configRef) throws PropertyVetoException;
-
-    /**
-     * Points to a named {@link DeploymentGroup}. Instances will be added to and removed from this Deployment Group
-     * when scaling.
-     *
-     * @return The name of the {@link DeploymentGroup}.
-     */
-    @Attribute(required = true)
-    @NotNull
-    String getDeploymentGroupRef();
-    void setDeploymentGroupRef(String deploymentGroupRef) throws PropertyVetoException;
+    protected void validateParams() throws CommandValidationException {
+        if (!StringUtils.ok(name)) {
+            throw new CommandValidationException("Name " + name + " is not valid");
+        }
+    }
 }

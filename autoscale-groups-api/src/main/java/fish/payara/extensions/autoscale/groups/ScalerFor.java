@@ -37,54 +37,27 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package fish.payara.extensions.autoscale.groups;
 
-import com.sun.enterprise.config.serverbeans.Config;
-import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
-import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBeanProxy;
-import org.jvnet.hk2.config.Configured;
+import org.glassfish.hk2.api.Metadata;
 
-import javax.validation.Payload;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import java.beans.PropertyVetoException;
-
-import static org.glassfish.config.support.Constants.NAME_SERVER_REGEX;
+import javax.inject.Qualifier;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Parent interface for AutoScale Group implementation ConfigBeans.
+ * Qualifier annotation used to help link a {@link Scaler} service with a {@link ScalingGroup}.
  *
  * @author Andrew Pielage
  */
-@Configured
-public interface ScalingGroup extends ConfigBeanProxy, Payload {
+@Qualifier
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface ScalerFor {
 
-    @Attribute(required = true)
-    @NotNull
-    @Pattern(regexp = NAME_SERVER_REGEX, message = "{sg.invalid.name}", payload = ScalingGroup.class)
-    String getName();
-    void setName(String name) throws PropertyVetoException;
-
-
-    /**
-     * Points to a named {@link Config}. All server instances in the scaling group will share this config.
-     *
-     * @return The name of the {@link Config}
-     */
-    @Attribute(required = true)
-    @NotNull
-    String getConfigRef();
-    void setConfigRef(String configRef) throws PropertyVetoException;
-
-    /**
-     * Points to a named {@link DeploymentGroup}. Instances will be added to and removed from this Deployment Group
-     * when scaling.
-     *
-     * @return The name of the {@link DeploymentGroup}.
-     */
-    @Attribute(required = true)
-    @NotNull
-    String getDeploymentGroupRef();
-    void setDeploymentGroupRef(String deploymentGroupRef) throws PropertyVetoException;
+    @Metadata("ScalerFor")
+    Class<? extends ScalingGroup> value();
 }

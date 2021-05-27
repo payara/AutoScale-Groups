@@ -68,7 +68,8 @@
     </issueManagement>
 
     <properties>
-        <payara.version>5.27.0</payara.version>
+        <payara.version>5.2020.5</payara.version>
+        <jsftemplating.version>2.1.4</jsftemplating.version>
 
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -78,6 +79,9 @@
 
     <modules>
         <module>autoscale-groups-api</module>
+        <module>autoscale-groups-nodes-plugin</module>
+        <module>autoscale-groups-core</module>
+        <module>autoscale-groups-console</module>
     </modules>
 
     <pluginRepositories>
@@ -107,7 +111,7 @@
 
     <repositories>
         <repository>
-            <id>payara-nexus</id>
+            <id>payara-nexus-artifacts</id>
             <name>Payara Public Artifacts</name>
             <url>https://nexus.payara.fish/repository/payara-artifacts/</url>
             <releases>
@@ -139,6 +143,17 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>payara-nexus-snapshots</id>
+            <name>Payara Snapshots</name>
+            <url>https://nexus.payara.fish/repository/payara-snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
     </repositories>
 
     <dependencyManagement>
@@ -163,6 +178,34 @@
                 <artifactId>console-plugin-service</artifactId>
                 <version>${payara.version}</version>
                 <optional>true</optional>
+            </dependency>
+            <!-- Useful for executing commands across a cluster or deployment group -->
+            <dependency>
+                <groupId>fish.payara.server.internal.cluster</groupId>
+                <artifactId>cluster-admin</artifactId>
+                <version>${payara.version}</version>
+                <optional>true</optional>
+            </dependency>
+            <!-- Useful for gaining access to some of the utility methods for Admin Console Handlers -->
+            <dependency>
+                <groupId>fish.payara.server.internal.admingui</groupId>
+                <artifactId>console-common</artifactId>
+                <version>${payara.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- For writing Admin Console Handlers -->
+            <dependency>
+                <groupId>com.sun.jsftemplating</groupId>
+                <artifactId>jsftemplating</artifactId>
+                <version>${jsftemplating.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- For writing Admin Console Handlers -->
+            <dependency>
+                <groupId>com.sun.jsftemplating</groupId>
+                <artifactId>jsftemplating-dt</artifactId>
+                <version>${jsftemplating.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -336,10 +379,9 @@
 
     <!-- Used for the deploy phase -->
     <distributionManagement>
-        <!-- Deploy to the main repo where the other distributions are published -->
         <repository>
-            <id>payara-nexus-enterprise-distributions</id>
-            <url>https://nexus.payara.fish/repository/payara-enterprise/</url>
+            <id>payara-nexus-artifacts</id>
+            <url>https://nexus.payara.fish/repository/payara-artifacts/</url>
         </repository>
     </distributionManagement>
 
@@ -381,12 +423,12 @@
 
             <distributionManagement>
                 <repository>
-                    <id>payara-nexus-enterprise-artifacts</id>
-                    <url>https://nexus.payara.fish/repository/payara-enterprise-artifacts-private/</url>
+                    <id>payara-nexus-artifacts</id>
+                    <url>https://nexus.payara.fish/repository/payara-artifacts/</url>
                 </repository>
                 <snapshotRepository>
-                    <id>payara-nexus-enterprise-snapshots</id>
-                    <url>https://nexus.payara.fish/repository/payara-enterprise-snapshots-private/</url>
+                    <id>payara-nexus-snapshots</id>
+                    <url>https://nexus.payara.fish/repository/payara-snapshots/</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>

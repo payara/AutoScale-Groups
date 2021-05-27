@@ -38,24 +38,37 @@
   only if the new code is made subject to such option by the copyright
   holder.
  -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>fish.payara.extensions.autoscale.groups</groupId>
         <artifactId>autoscale-groups-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>autoscale-groups-api</artifactId>
+    <artifactId>autoscale-groups-console</artifactId>
+    <name>Payara AutoScale Groups Console</name>
     <packaging>glassfish-jar</packaging>
-
-    <name>Payara AutoScale Groups API</name>
+    <description>Module containing the core Admin Console classes and pages for Payara AutoScale Groups Extensions</description>
 
     <dependencies>
         <dependency>
-            <groupId>fish.payara.server.internal.common</groupId>
-            <artifactId>internal-api</artifactId>
+            <groupId>fish.payara.server.internal.admingui</groupId>
+            <artifactId>console-plugin-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>fish.payara.server.internal.admingui</groupId>
+            <artifactId>console-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.jsftemplating</groupId>
+            <artifactId>jsftemplating</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.jsftemplating</groupId>
+            <artifactId>jsftemplating-dt</artifactId>
         </dependency>
     </dependencies>
 

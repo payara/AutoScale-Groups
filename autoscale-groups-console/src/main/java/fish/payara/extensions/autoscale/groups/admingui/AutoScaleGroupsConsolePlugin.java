@@ -37,54 +37,25 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups;
+package fish.payara.extensions.autoscale.groups.admingui;
 
-import com.sun.enterprise.config.serverbeans.Config;
-import fish.payara.enterprise.config.serverbeans.DeploymentGroup;
-import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBeanProxy;
-import org.jvnet.hk2.config.Configured;
-
-import javax.validation.Payload;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import java.beans.PropertyVetoException;
-
-import static org.glassfish.config.support.Constants.NAME_SERVER_REGEX;
+import java.net.URL;
+import org.glassfish.api.admingui.ConsoleProvider;
+import org.jvnet.hk2.annotations.Service;
 
 /**
- * Parent interface for AutoScale Group implementation ConfigBeans.
+ *  This class serves as a marker to indicate this OSGi bundle provides GUI content which is to be displayed in the
+ *  GlassFish admin console.  The {@link #getConfiguration()} method should either return <code>(null)</code>, or a
+ *  <code>URL</code> to the <code>console-config.xml</code> file.
  *
- * @author Andrew Pielage
+ *  @author Andrew Pielage
+ *  @author Ken Paulsen (ken.paulsen@sun.com)
  */
-@Configured
-public interface ScalingGroup extends ConfigBeanProxy, Payload {
-
-    @Attribute(required = true)
-    @NotNull
-    @Pattern(regexp = NAME_SERVER_REGEX, message = "{sg.invalid.name}", payload = ScalingGroup.class)
-    String getName();
-    void setName(String name) throws PropertyVetoException;
-
-
-    /**
-     * Points to a named {@link Config}. All server instances in the scaling group will share this config.
-     *
-     * @return The name of the {@link Config}
-     */
-    @Attribute(required = true)
-    @NotNull
-    String getConfigRef();
-    void setConfigRef(String configRef) throws PropertyVetoException;
-
-    /**
-     * Points to a named {@link DeploymentGroup}. Instances will be added to and removed from this Deployment Group
-     * when scaling.
-     *
-     * @return The name of the {@link DeploymentGroup}.
-     */
-    @Attribute(required = true)
-    @NotNull
-    String getDeploymentGroupRef();
-    void setDeploymentGroupRef(String deploymentGroupRef) throws PropertyVetoException;
+@Service
+public class AutoScaleGroupsConsolePlugin implements ConsoleProvider {
+    
+    @Override
+    public URL getConfiguration() {
+        return null;
+    }
 }

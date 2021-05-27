@@ -37,67 +37,66 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package fish.payara.extensions.autoscale.groups;
 
-import com.sun.enterprise.config.serverbeans.DomainExtension;
-import fish.payara.internal.notification.PayaraNotifierConfiguration;
-import fish.payara.internal.notification.admin.NotificationServiceConfiguration;
-import org.jvnet.hk2.config.Configured;
-import org.jvnet.hk2.config.DuckTyped;
-import org.jvnet.hk2.config.Element;
+package fish.payara.extensions.autoscale.groups.admingui;
+
+import com.sun.jsftemplating.annotation.Handler;
+import com.sun.jsftemplating.annotation.HandlerInput;
+import com.sun.jsftemplating.annotation.HandlerOutput;
+import com.sun.jsftemplating.layout.descriptors.handler.HandlerContext;
+import org.glassfish.admingui.common.util.GuiUtil;
+import org.glassfish.admingui.common.util.RestUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * "Group" ConfigBean interface which slots into Payara config at the domain level, holding references to each
- * individual {@link ScalingGroup}.
+ * Generic Handler methods for performing various tasks on core AutoScale Groups pages.
  *
  * @author Andrew Pielage
  */
-@Configured
-public interface ScalingGroups extends DomainExtension {
+public class AutoScaleGroupsHandlers {
 
     /**
-     * The list of all registered {@link ScalingGroup} ConfigBeans.
+     * Gets the config of all scaling groups.
      *
-     * @return The list of all registered {@link ScalingGroup} ConfigBeans.
+     * @param handlerCtx
      */
-    @Element("*")
-    List<ScalingGroup> getScalingGroups();
+    @Handler(id = "py.getScalingGroupsList",
+            input = {
+                    @HandlerInput(name = "endpoint", type = String.class, required = true)
+            },
+            output = {
+                    @HandlerOutput(name = "result", type = List.class)
+            })
+    public static void getScalingGroupsList(HandlerContext handlerCtx) {
+        try {
+            // Execute the list-scaling-groups command
+            Map<String, Object> responseMap = RestUtil.restRequest(
+                    handlerCtx.getInputValue("endpoint") + "/list-scaling-groups", null, "get", handlerCtx, true);
 
-    /**
-     * Return the {@link ScalingGroup} with the specified name
-     * @param name The name of the {@link ScalingGroup} to return
-     * @return The {@link ScalingGroup} with the matching name, or null if no match found
-     */
-    @DuckTyped
-    ScalingGroup getScalingGroup(String name);
+            // Extract the list of maps from properties
+            List<Map<String, Object>> scalingGroupMaps = new ArrayList<>();
+            Map<String, ?> data = (Map<String, ?>) responseMap.get("data");
 
-    @DuckTyped
-    <T extends ScalingGroup> List<T> getScalingGroupsOfType(Class<T> type);
-
-    class Duck {
-        public static ScalingGroup getScalingGroup(ScalingGroups scalingGroups, String name) {
-            for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-                if (scalingGroup.getName().equals(name)) {
-                    return scalingGroup;
+            if (data != null) {
+                Map<String, ?> extraProperties = (Map<String, ?>) data.get("extraProperties");
+                if (extraProperties != null) {
+                    scalingGroupMaps = (List<Map<String, Object>>) extraProperties.get("scalingGroups");
                 }
             }
 
-            return null;
-        }
-
-        public static <T extends ScalingGroup> List<T> getScalingGroupsOfType(ScalingGroups scalingGroups, Class<T> type) {
-            List<T> scalingGroupsOfTypeT = new ArrayList<>();
-            for (ScalingGroup scalingGroup : scalingGroups.getScalingGroups()) {
-                try {
-                    scalingGroupsOfTypeT.add(type.cast(scalingGroup));
-                } catch (Exception e) {
-                    // Wrong type - Do nothing
-                }
+            // Add "selected" field to each map for use in tables
+            for (Map<String, Object> scalingGroupMap : scalingGroupMaps) {
+                scalingGroupMap.put("selected", false);
             }
-            return scalingGroupsOfTypeT;
+
+            // Return
+            handlerCtx.setOutputValue("result", scalingGroupMaps);
+        } catch (Exception ex) {
+            GuiUtil.handleException(handlerCtx, ex);
         }
     }
+
 }
