@@ -216,7 +216,7 @@
                 <!-- Global plugin config to properly generate MANIFEST.MF with expected classpath and import/export -->
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.2.0</version>
+                    <version>3.4.2</version>
                     <executions>
                         <execution>
                             <id>default-jar</id>
