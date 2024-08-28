@@ -6,21 +6,21 @@ pipeline {
         label 'general-purpose'
     }
     tools {
-        jdk "zulu-8"
+        jdk "zulu-11"
         maven "maven-3.6.3"
     }
     environment {
-        JAVA_HOME = tool("zulu-8")
+        JAVA_HOME = tool("zulu-11")
         MAVEN_OPTS = '-Xmx2G -Djavax.net.ssl.trustStore=${JAVA_HOME}/jre/lib/security/cacerts'
         payaraBuildNumber = "${BUILD_NUMBER}"
     }
     stages {
 
-        stage('Checkout Payara5 master') {
+        stage('Checkout Payara6 master') {
             steps {
                 script {
                     checkout changelog: false, poll: true, scm: [$class: 'GitSCM',
-                    branches: [[name: "master"]],
+                    branches: [[name: "Payara6"]],
                     doGenerateSubmoduleConfigurations: false,
                     extensions: [], 
                     submoduleCfg: [],
