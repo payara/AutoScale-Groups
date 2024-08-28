@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2021 Payara Foundation and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021-2024 Payara Foundation and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,7 @@ import fish.payara.extensions.autoscale.groups.ScalingGroup;
 import org.glassfish.api.Param;
 import org.glassfish.api.admin.CommandValidationException;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 /**
  * Parent class intended to be extended from for any Scaling Groups "create" commands, containing common validation and
