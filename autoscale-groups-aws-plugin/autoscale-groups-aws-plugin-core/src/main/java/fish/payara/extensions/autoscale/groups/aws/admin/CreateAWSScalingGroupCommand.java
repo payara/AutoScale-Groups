@@ -39,11 +39,21 @@ public class CreateAWSScalingGroupCommand extends CreateScalingGroupCommand {
     @Param(name = "ami-id")
     private String amiId;
 
+    @Param(name = "security-group")
+    private String securityGroup;
+
     @Param(name = "min-instances")
     private int minInstances;
 
     @Param(name = "max-instances")
     private int maxInstances;
+
+    @Param(name = "payara-install-dir")
+    private String payaraInstallDir;
+
+    @Param(name = "password-file-path")
+    private String passwordFilePath;
+
     
     @Override
     public void execute(AdminCommandContext adminCommandContext) {
@@ -67,8 +77,11 @@ public class CreateAWSScalingGroupCommand extends CreateScalingGroupCommand {
                 awsScalingGroupProxy.setRegion(region);
                 awsScalingGroupProxy.setInstanceType(instanceType);
                 awsScalingGroupProxy.setAmiId(amiId);
+                awsScalingGroupProxy.setSecurityGroup(securityGroup);
                 awsScalingGroupProxy.setMinInstances(minInstances);
                 awsScalingGroupProxy.setMaxInstances(maxInstances);
+                awsScalingGroupProxy.setPayaraInstallDir(payaraInstallDir);
+                awsScalingGroupProxy.setPasswordFilePath(passwordFilePath);
 
                 scalingGroupsProxy.getScalingGroups().add(awsScalingGroupProxy);
                 return scalingGroupsProxy;
