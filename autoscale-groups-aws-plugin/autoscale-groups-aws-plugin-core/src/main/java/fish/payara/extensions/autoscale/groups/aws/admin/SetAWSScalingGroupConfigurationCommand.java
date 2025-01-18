@@ -1,9 +1,10 @@
 package fish.payara.extensions.autoscale.groups.aws.admin;
 
+import com.sun.enterprise.config.serverbeans.Nodes;
 import com.sun.enterprise.util.StringUtils;
-import fish.payara.extensions.autoscale.groups.ScalingGroups;
-import fish.payara.extensions.autoscale.groups.admin.CreateScalingGroupCommand;
+import fish.payara.extensions.autoscale.groups.admin.SetScalingGroupConfigurationCommand;
 import fish.payara.extensions.autoscale.groups.aws.AWSScalingGroup;
+import jakarta.inject.Inject;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.Param;
 import org.glassfish.api.admin.AdminCommandContext;
@@ -11,6 +12,7 @@ import org.glassfish.api.admin.CommandValidationException;
 import org.glassfish.api.admin.ExecuteOn;
 import org.glassfish.api.admin.RestEndpoint;
 import org.glassfish.api.admin.RestEndpoints;
+import org.glassfish.api.admin.RestParam;
 import org.glassfish.api.admin.RuntimeType;
 import org.glassfish.hk2.api.PerLookup;
 import org.jvnet.hk2.annotations.Service;
@@ -21,18 +23,23 @@ import software.amazon.awssdk.services.ec2.model.InstanceType;
 
 import java.util.List;
 
-@Service(name = "create-aws-scaling-group")
+/**
+ * Sets the configuration of a {@link AWSScalingGroup}.
+ */
+@Service(name = "set-aws-scaling-group-configuration")
 @PerLookup
 @ExecuteOn(RuntimeType.DAS)
 @RestEndpoints({
-        @RestEndpoint(configBean = ScalingGroups.class,
+        @RestEndpoint(configBean = AWSScalingGroup.class,
                 opType = RestEndpoint.OpType.POST,
-                path = "create-aws-scaling-group",
-                description = "Creates a AWS Scaling Group"
+                path = "set-aws-scaling-group-configuration",
+                description = "Sets the configuration of the target Scaling Group",
+                params = {
+                        @RestParam(name = "name", value = "$parent")
+                }
         )
 })
-public class CreateAWSScalingGroupCommand extends CreateScalingGroupCommand {
-
+public class SetAWSScalingGroupConfigurationCommand extends SetScalingGroupConfigurationCommand {
 
     @Param(name = "region")
     private String region;
@@ -58,7 +65,9 @@ public class CreateAWSScalingGroupCommand extends CreateScalingGroupCommand {
     @Param(name = "password-file-path")
     private String passwordFilePath;
 
-    
+    @Inject
+    protected Nodes nodes;
+
     @Override
     public void execute(AdminCommandContext adminCommandContext) {
         try {
@@ -71,46 +80,52 @@ public class CreateAWSScalingGroupCommand extends CreateScalingGroupCommand {
 
         try {
             ConfigSupport.apply(scalingGroupsProxy -> {
-                AWSScalingGroup awsScalingGroupProxy = scalingGroupsProxy.createChild(AWSScalingGroup.class);
-                awsScalingGroupProxy.setName(name);
-                awsScalingGroupProxy.setDeploymentGroupRef(deploymentGroupRef);
+                ConfigSupport.apply(awsScalingGroupProxy -> {
+                    if (StringUtils.ok(deploymentGroupRef)) {
+                        awsScalingGroupProxy.setDeploymentGroupRef(deploymentGroupRef);
+                    }
 
-                if (StringUtils.ok(configRef)) {
-                    awsScalingGroupProxy.setConfigRef(configRef);
-                }
+                    if (StringUtils.ok(configRef)) {
+                        awsScalingGroupProxy.setConfigRef(configRef);
+                    }
 
-                if (StringUtils.ok(region)) {
-                    awsScalingGroupProxy.setRegion(region);
-                }
+                    if (StringUtils.ok(region)) {
+                        awsScalingGroupProxy.setRegion(region);
+                    }
 
-                if (StringUtils.ok(instanceType)) {
-                    awsScalingGroupProxy.setInstanceType(instanceType);
-                }
+                    if (StringUtils.ok(instanceType)) {
+                        awsScalingGroupProxy.setInstanceType(instanceType);
+                    }
 
-                if (StringUtils.ok(amiId)) {
-                    awsScalingGroupProxy.setAmiId(amiId);
-                }
+                    if (StringUtils.ok(amiId)) {
+                        awsScalingGroupProxy.setAmiId(amiId);
+                    }
 
-                if (StringUtils.ok(securityGroup)) {
-                    awsScalingGroupProxy.setSecurityGroup(securityGroup);
-                }
+                    if (StringUtils.ok(securityGroup)) {
+                        awsScalingGroupProxy.setSecurityGroup(securityGroup);
+                    }
 
-                if (minInstances > 0) {
-                    awsScalingGroupProxy.setMinInstances(minInstances);
-                }
+                    if (minInstances > 0) {
+                        awsScalingGroupProxy.setMinInstances(minInstances);
+                    }
 
-                if (maxInstances > 0) {
-                    awsScalingGroupProxy.setMaxInstances(maxInstances);
-                }
+                    if (maxInstances > 0) {
+                        awsScalingGroupProxy.setMaxInstances(maxInstances);
+                    }
 
-                if (StringUtils.ok(payaraInstallDir)) {
-                    awsScalingGroupProxy.setPayaraInstallDir(payaraInstallDir);
-                }
+                    if (StringUtils.ok(payaraInstallDir)) {
+                        awsScalingGroupProxy.setPayaraInstallDir(payaraInstallDir);
+                    }
 
-                if (StringUtils.ok(passwordFilePath)) {
-                    awsScalingGroupProxy.setPasswordFilePath(passwordFilePath);
-                }
-                scalingGroupsProxy.getScalingGroups().add(awsScalingGroupProxy);
+                    if (StringUtils.ok(passwordFilePath)) {
+                        awsScalingGroupProxy.setPasswordFilePath(passwordFilePath);
+                    }
+
+
+
+                    return awsScalingGroupProxy;
+                }, (AWSScalingGroup) scalingGroupsProxy.getScalingGroup(name));
+
                 return scalingGroupsProxy;
             }, scalingGroups);
         } catch (TransactionFailure transactionFailure) {
