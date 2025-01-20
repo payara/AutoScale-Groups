@@ -1,0 +1,116 @@
+<!composition template="/templates/default.layout"  guiTitle="Edit AWS Scaling Group">
+    <!define name="content">
+        <event>
+            <!beforeCreate
+                setSessionAttribute(key="autoScaleGroupsTabs" value="awsScaleGroupsTab");
+                getRequestValue(key="scalingGroupName" value="#{pageSession.scalingGroupName}");
+                urlencode(value="#{pageSession.scalingGroupName}" encoding="UTF-8" result="#{pageSession.encodedScalingGroupName}");
+                getRequestValue(key="dgName" value="#{pageSession.dgName}");
+                urlencode(value="#{pageSession.dgName}" encoding="UTF-8" result="#{pageSession.encodedDGName}");
+                setPageSessionAttribute(key="selfPage",
+                        value="#{request.contextPath}/awsScaleGroups/awsScaleGroupsEdit.jsf?scalingGroupName=#{pageSession.encodedScalingGroupName}&dgName=#{pageSession.encodedDGName}");
+                setPageSessionAttribute(key="parentPage", value="#{request.contextPath}/cluster/dg/dgs.jsf");
+
+                gf.restRequest(endpoint="#{sessionScope.REST_URL}/scaling-groups/aws-scaling-group/#{pageSession.encodedScalingGroupName}/get-aws-scaling-group-configuration"  method="GET" result="#{pageSession.scalingGroupConfig}");
+                setPageSessionAttribute(key="valueMap", value="#{pageSession.scalingGroupConfig.data.extraProperties.scalingGroupConfig}");
+
+                gf.getChildrenNamesList(endpoint="#{sessionScope.REST_URL}/configs/config",
+                        result="#{requestScope.tmpList}");
+                listRemove(list="#{requestScope.tmpList}" value="server-config" result="#{pageSession.configRefsList}");
+                listRemove(list="#{requestScope.tmpList}" value="default-config" result="#{pageSession.configRefsList}");
+
+                gf.getChildrenNamesList(endpoint="#{sessionScope.REST_URL}/deployment-groups/deployment-group",
+                        result="#{pageSession.deploymentGroupRefsList}");
+                py.getValidInstanceTypes(result="#{pageSession.instanceTypesRefsList}");
+                py.getValidRegions(result="#{pageSession.regionRefsList}");
+            />
+        </event>
+        <sun:form id="propertyForm">
+
+#include "/cluster/dg/dgTabs.inc"
+#include "/autoScaleGroups/autoScaleGroupsTabs.inc"
+#include "/common/shared/alertMsg_1.inc"
+            <!-- Page Title -->
+            <sun:title id="propertyContentPage" title="Edit AWS Scaling Group"
+                       helpText="Configure a AWS AutoScale Group">
+                <!facet pageButtonsTop>
+                    <sun:panelGroup id="topButtons">
+                        <sun:button id="saveButton"  text="$resource{i18n.button.Save}"
+                                    onClick="if (guiValidate('#{reqMsg}','#{reqInt}','#{reqPort}')) submitAndDisable(this, '$resource{i18n.button.Processing}'); return false;" >
+                            <!command
+                                <!-- Remove name from the valueMap to prevent duplicate param warnings (name already specified by REST request URL) -->
+                                mapRemove(map="#{pageSession.valueMap}" key="name");
+
+                                <!-- Execute -->
+                                gf.restRequest(endpoint="#{sessionScope.REST_URL}/scaling-groups/aws-scaling-group/#{pageSession.encodedScalingGroupName}/set-aws-scaling-group-configuration",
+                                        attrs="#{pageSession.valueMap}");
+                                prepareSuccessfulMsg();
+                                gf.redirect(page="#{pageSession.selfPage}&alertType=${alertType}&alertSummary=${alertSummary}&alertDetail=${alertDetail}");
+                            />
+                        </sun:button>
+                    </sun:panelGroup>
+                </facet>
+            </sun:title>
+            <sun:propertySheet id="scalingGroupConfigSheet">
+                <sun:propertySheetSection>
+                    <sun:property id="configRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Config:"  helpText="The config new instances creating while scaling will use">
+                        <sun:dropDown id="configRefDrop" selected="#{pageSession.valueMap['config']}"
+                                      labels="$pageSession{configRefsList}"  values="$pageSession{configRefsList}" >
+                        </sun:dropDown>
+                    </sun:property>
+                    <sun:property id="deploymentGroupRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Deployment Group:"  helpText="The deployment group this scaling group is attached to">
+                        <sun:dropDown id="deploymentGroupRefDrop" selected="#{pageSession.valueMap['deploymentGroup']}"
+                                      labels="$pageSession{deploymentGroupRefsList}"  values="$pageSession{deploymentGroupRefsList}" >
+                        </sun:dropDown>
+                    </sun:property>
+                    <sun:property id="regionRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
+                                  label="Region:"
+                                  helpText="The EC2 Region to create Instances in">
+                        <sun:dropDown id="regionRefDrop" selected="#{pageSession.valueMap['region']}"
+                                      labels="$pageSession{regionRefsList}"  values="$pageSession{regionRefsList}"
+                                      required="#{true}" styleClass="required">
+                        </sun:dropDown>
+                    </sun:property>
+                    <sun:property id="instanceTypeRefProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}"
+                                  label="Instance Type:"
+                                  helpText="The EC2 Instance Type to scale on">
+                        <sun:dropDown id="instanceTypeRefDrop" selected="#{pageSession.valueMap['instance-type']}"
+                                      labels="$pageSession{instanceTypesRefsList}"  values="$pageSession{instanceTypesRefsList}"
+                                      required="#{true}" styleClass="required">
+                        </sun:dropDown>
+                    </sun:property>
+                    <sun:property id="amiIdProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="AMI ID:"
+                                  helpText="The EC2 AMI ID of the Scaling Group - must start with 'ami-'">
+                        <sun:textField id="amiIdText" columns="$int{60}" required="#{true}"
+                                       text="#{pageSession.valueMap['ami-id']}" styleClass="required"/>
+                    </sun:property>
+                    <sun:property id="securityGroupProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Security Group:"
+                                  helpText="The EC2 Security Group of the Scaling Group - must start with 'sg-'">
+                        <sun:textField id="securityGroupText" columns="$int{60}" required="#{true}"
+                                       text="#{pageSession.valueMap['security-group']}" styleClass="required"/>
+                    </sun:property>
+                    <sun:property id="minInstancesProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Min Instances:"
+                                  helpText="The minimum number of EC2 Instances">
+                        <sun:textField id="minInstancesText" columns="$int{60}" required="#{true}"
+                                       text="#{pageSession.valueMap['min-instances']}" styleClass="required"/>
+                    </sun:property>
+                    <sun:property id="maxInstancesProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Max Instances:"
+                                  helpText="The maximum number of EC2 Instances">
+                        <sun:textField id="maxInstancesText" columns="$int{60}" required="#{true}"
+                                       text="#{pageSession.valueMap['max-instances']}" styleClass="required"/>
+                    </sun:property>
+                    <sun:property id="payaraInstallDirProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Payara Install Dir:"
+                                  helpText="The Payara Installation Directory on the AMI">
+                        <sun:textField id="payaraInstallDirText" columns="$int{60}" required="#{true}"
+                                       text="#{pageSession.valueMap['payara-install-dir']}" styleClass="required"/>
+                    </sun:property>
+                    <sun:property id="passwordFilePathProp" labelAlign="left" noWrap="#{true}" overlapLabel="#{false}" label="Password File Path:"
+                                  helpText="The Password File Path on the AMI">
+                        <sun:textField id="passwordFilePathText" columns="$int{60}" required="#{true}"
+                                       text="#{pageSession.valueMap['password-file-path']}" styleClass="required"/>
+                    </sun:property>
+                </sun:propertySheetSection>
+            </sun:propertySheet>
+        </sun:form>
+    </define>
+</composition>

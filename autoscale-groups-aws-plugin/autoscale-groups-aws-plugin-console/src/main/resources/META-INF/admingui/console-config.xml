@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<console-config id="awsScaleGroups">
+            
+    <integration-point
+        id="awsScaleGroupsTab"
+        type="fish.payara.admingui.extensions:autoScaleGroupsTab"
+        priority="350"
+        parentId="autoScaleGroupsTabs"
+        content="awsScaleGroupsTab.inc"
+    />
+
+</console-config>

@@ -1,0 +1,80 @@
+<!composition template="/templates/default.layout"  guiTitle="AWS Scaling Groups">
+    <!define name="listTableDeleteButton">
+        <sun:button id="button1" text="$resource{i18n.button.Delete}" disabled="#{true}" primary="#{false}"
+                    onClick="if (getConfirm(this,'Delete aws scaling group?')) {submitAndDisable(this, '$resource{i18n.button.Processing}');}; return false;" >
+            <!command
+                getUIComponent(clientId="$pageSession{tableRowGroupId}", component=>$attribute{tableRowGroup});
+                getSelectedSingleMapRows(TableRowGroup="${tableRowGroup}" selectedRows=>$attribute{selectedRows});
+                foreach (var="row" list="${selectedRows}") {
+                    createMap(result="#{pageSession.tableValueMap}");
+                    mapPut(map="#{pageSession.tableValueMap}"  key="id" value="#{row['name']}");
+                    gf.restRequest(endpoint="#{sessionScope.REST_URL}/scaling-groups/delete-scaling-group", method="delete", attrs="#{pageSession.tableValueMap}");
+                }
+                gf.redirect(page="#{pageSession.listLink}");
+            />
+        </sun:button>
+    </define>
+    <!define name="content">
+        <event>
+            <!beforeCreate
+                setSessionAttribute(key="autoScaleGroupsTabs" value="awsScaleGroupsTab");
+                getRequestValue(key="dgName" value="#{pageSession.dgName}");
+                urlencode(value="#{pageSession.dgName}" encoding="UTF-8" result="#{pageSession.encodedDGName}");
+                setPageSessionAttribute(key="selfPage",
+                        value="#{request.contextPath}/awsScaleGroups/awsScaleGroupsList.jsf?dgName=#{pageSession.encodedDGName}");
+                setPageSessionAttribute(key="parentPage",
+                        value="#{request.contextPath}/cluster/dg/dgs.jsf");
+
+                setPageSessionAttribute(key="createLink" value="#{request.contextPath}/awsScaleGroups/awsScaleGroupsNew.jsf?dgName=#{pageSession.encodedDGName}");
+                setPageSessionAttribute(key="listLink" value="#{pageSession.selfPage}");
+
+                py.getScalingGroupsList(endpoint="#{sessionScope.REST_URL}/scaling-groups", result="#{pageSession.listOfRows}");
+            />
+        </event>
+        <sun:form id="propertyForm">
+
+#include "/cluster/dg/dgTabs.inc"
+#include "/autoScaleGroups/autoScaleGroupsTabs.inc"
+#include "/common/shared/alertMsg_1.inc"
+
+            <!-- Page Title -->
+            <sun:title id="propertyContentPage" title="AWS Scaling Groups"
+                       helpText="Create, Configure, or Delete a AWS AutoScale Group">
+            </sun:title>
+
+            <sun:table id="awsScaleGroupsTable" title="AWS Scaling Groups" deselectMultipleButton="$boolean{true}"
+                       deselectMultipleButtonOnClick="setTimeout('admingui.table.changeThreeTableButtons(\\\\\'#{pageSession.topActionGroup}\\\\\', \\\\\'#{pageSession.tableId}\\\\\');', 0)"
+                       selectMultipleButton="$boolean{true}"
+                       selectMultipleButtonOnClick="setTimeout('admingui.table.changeThreeTableButtons(\\\\\'#{pageSession.topActionGroup}\\\\\', \\\\\'#{pageSession.tableId}\\\\\');', 0)" >
+                <!afterCreate
+                    getClientId(component="$this{component}" clientId=>$page{tableId});
+                />
+
+#include "/common/shared/listTableButtons.inc"
+
+                <sun:tableRowGroup id="rowGroup1" selected="#{td.value.selected}" data={"$pageSession{listOfRows}"} sourceVar="td">
+                    <!afterCreate
+                        getClientId(component="$this{component}" clientId=>$page{tableRowGroupId});
+                    />
+
+                    <sun:tableColumn headerText="Select" selectId="select"
+                                     rowHeader="$boolean{false}" valign="top"  id="col0">
+                        <sun:checkbox id="select" selected="#{td.value.selected}" selectedValue="$boolean{true}"
+                                      onClick="setTimeout('admingui.table.changeThreeTableButtons(\\\\\'#{pageSession.topActionGroup}\\\\\', \\\\\'#{pageSession.tableId}\\\\\'); admingui.table.initAllRows(\\\\\'#{pageSession.tableId}\\\\\');', 0);"/>
+                    </sun:tableColumn>
+
+                    <sun:tableColumn headerText="Name" rowHeader="$boolean{true}"
+                                     valign="top" id="col1">
+                        <sun:hyperlink id="nameLink" text="#{td.value.name}"
+                                       url="#{request.contextPath}/awsScaleGroups/awsScaleGroupsEdit.jsf?scalingGroupName=#{td.value.name}&dgName=#{pageSession.encodedDGName}" />
+                    </sun:tableColumn>
+
+                    <sun:tableColumn headerText="Deployment Group" rowHeader="$boolean{true}" id="col3">
+                        <sun:hyperlink id="dgLink" text="#{td.value.deploymentGroupRef}"
+                                       url="#{request.contextPath}/cluster/dg/dgGeneral.jsf?dgName=#{td.value.deploymentGroupRef}" />
+                    </sun:tableColumn>
+                </sun:tableRowGroup>
+            </sun:table>
+        </sun:form>
+    </define>
+</composition>

@@ -16,6 +16,8 @@
 
     <modules>
         <module>autoscale-groups-aws-plugin-core</module>
+        <module>autoscale-groups-aws-plugin-console</module>
+        <module>autoscale-groups-aws-plugin-dependencies</module>
     </modules>
 
 
