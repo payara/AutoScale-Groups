@@ -74,13 +74,13 @@ public class GetAWSScalingGroupConfigurationCommand extends GetScalingGroupConfi
         configMap.put("config", awsScalingGroup.getConfigRef());
         configMap.put("deploymentGroup", awsScalingGroup.getDeploymentGroupRef());
         configMap.put("region", awsScalingGroup.getRegion());
-        configMap.put("instanceType", awsScalingGroup.getInstanceType());
-        configMap.put("amiId", awsScalingGroup.getAmiId());
-        configMap.put("securityGroup", awsScalingGroup.getSecurityGroup());
-        configMap.put("minInstances", awsScalingGroup.getMinInstances());
-        configMap.put("maxInstances", awsScalingGroup.getMaxInstances());
-        configMap.put("installDir", awsScalingGroup.getPayaraInstallDir());
-        configMap.put("passwordFilePath", awsScalingGroup.getPasswordFilePath());
+        configMap.put("instance-type", awsScalingGroup.getInstanceType());
+        configMap.put("ami-id", awsScalingGroup.getAmiId());
+        configMap.put("security-group", awsScalingGroup.getSecurityGroup());
+        configMap.put("min-instances", awsScalingGroup.getMinInstances());
+        configMap.put("max-instances", awsScalingGroup.getMaxInstances());
+        configMap.put("payara-install-dir", awsScalingGroup.getPayaraInstallDir());
+        configMap.put("password-file-path", awsScalingGroup.getPasswordFilePath());
 
         extraProps.put("scalingGroupConfig", configMap);
         adminCommandContext.getActionReport().setExtraProperties(extraProps);

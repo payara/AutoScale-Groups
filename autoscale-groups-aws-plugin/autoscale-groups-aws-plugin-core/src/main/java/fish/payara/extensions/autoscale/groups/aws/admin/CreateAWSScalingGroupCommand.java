@@ -123,24 +123,6 @@ public class CreateAWSScalingGroupCommand extends CreateScalingGroupCommand {
     protected void validateParams() throws CommandValidationException {
         super.validateParams();
 
-        List<AWSScalingGroup> awsScalingGroups = scalingGroups.getScalingGroupsOfType(AWSScalingGroup.class);
-
-        if (awsScalingGroups.isEmpty()) {
-            throw new CommandValidationException("Scaling Group " + name + " is not a AWS Scaling Group.");
-        }
-
-        boolean exists = false;
-        for (AWSScalingGroup awsScalingGroup : awsScalingGroups) {
-            if (awsScalingGroup.getName().equals(name)) {
-                exists = true;
-                break;
-            }
-        }
-
-        if (!exists) {
-            throw new CommandValidationException("Scaling Group " + name + " is not a AWS Scaling Group.");
-        }
-
         if (minInstances < 0) {
             throw new CommandValidationException("Min instances must be greater than zero");
         }

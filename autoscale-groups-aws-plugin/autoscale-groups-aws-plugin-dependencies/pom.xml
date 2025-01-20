@@ -5,13 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>fish.payara.extensions.autoscale.groups</groupId>
-        <artifactId>autoscale-groups-parent</artifactId>
+        <artifactId>autoscale-groups-aws-plugin</artifactId>
         <version>1.0</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>autoscale-groups-aws-plugin-dependencies</artifactId>
-
+    <description>Dependency module for AutoScale Groups AWS extension</description>
+    <packaging>glassfish-jar</packaging>
+    <name>Payara AutoScale Groups: AWS - Dependencies</name>
     <build>
         <plugins>
             <plugin>

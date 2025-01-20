@@ -283,7 +283,10 @@ public class AWSScaler extends Scaler {
             actionReport.setActionExitCode(ActionReport.ExitCode.FAILURE);
             return null;
         });
-        ec2InstanceIds.addAll(future.join());
+        List<String> instanceIds = future.join();
+        if (instanceIds != null) {
+            ec2InstanceIds.addAll(instanceIds);
+        }
     }
 
     private static Ec2AsyncClient getAsyncClient(String region) {
